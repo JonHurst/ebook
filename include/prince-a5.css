@@ -1,0 +1,67 @@
+@import url(prince-common.css);
+
+@page {
+    size: 148mm 210mm;
+    margin: 12.5mm 17.5mm;
+}
+
+@page numbered {
+    @bottom {content: counter(page)}
+}
+
+.chapter {
+    page: numbered;
+    widows: 2;
+    orphans: 2;
+}
+
+body, td {
+    font-size: 12pt;
+    prince-image-resolution: 120dpi;
+}
+
+
+.fsp {
+    height:185mm;
+    width:113mm;
+}
+
+
+.fsp * {
+    max-height: 185mm;
+    max-width: 113mm;
+}
+
+
+.fsl {
+    width:185mm;
+    height:113mm;
+    transform-origin: top left;
+    transform: rotate(-90deg) translate(-185mm, -5mm);
+}
+
+
+.fsl * {
+    max-width:185mm;
+    max-height:148mm;
+}
+
+
+.captioned.fsp img
+{
+    max-height: 180mm;
+}
+
+
+.captioned.fsl img
+{
+    max-height: 103mm;
+}
+
+
+p.caption
+{
+    height: 8mm;
+    margin-top: 1mm;
+    font-size: 10pt;
+}

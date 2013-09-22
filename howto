@@ -1,0 +1,11 @@
+1. Convert file to UTF-8 and update any charset references.
+1a. Add a symlink to include directory
+2. Run decruft.py -> gives decruft.xhtml
+3. Run bspsplit.py on decruft.xhtml -> gives skeleton.xhtml and bsps.xhtml
+4. Edit skeleton.xhtml, using chromium audit to remove unused css
+5. Run recombine.py on skeleton.xhtml and bsps.xhtml -> gives recombine.xhtml
+6. Run html_curlify on recombine.xhtml
+7. Sort out remaining {"} and {'}
+8. Replace em-dashes with spaced en-dashes
+9. Replace space between em-dash and closing quotes with nbsp.
+10. Run prince.

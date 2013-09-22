@@ -1,0 +1,57 @@
+@import url(prince-common.css);
+
+@page {
+    size: 90mm 123mm;
+    margin: 0.25mm;
+}
+
+
+body, td {
+    font-size: 10.5pt;
+}
+
+
+.fsp {
+    height:122.5mm;
+    width:89.5mm;
+}
+
+
+.fsp * {
+    max-height: 122.5mm;
+    max-width: 89.5mm;
+}
+
+
+.fsl {
+    width:122.5mm;
+    height:89.5mm;
+    transform-origin: top left;
+    transform: rotate(-90deg) translate(-122.75mm);
+}
+
+
+.fsl * {
+    max-width:122.5mm;
+    max-height:89.5mm;
+}
+
+
+.captioned.fsp img
+{
+    max-height: 115mm;
+}
+
+
+.captioned.fsl img
+{
+    max-height: 82mm;
+}
+
+
+p.caption
+{
+    height: 6mm;
+    margin-top: 1mm;
+    font-size: 9pt;
+}

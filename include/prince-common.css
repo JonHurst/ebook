@@ -1,0 +1,96 @@
+@page {
+    border: 1px solid #fefefe;
+    box-sizing:border-box;
+}
+
+body, td {
+    color: black;
+    background: white;
+    font-family: freesans;
+    prince-image-resolution: 166dpi;
+    prince-hyphenate-lines: 2;
+    hyphens: auto;
+    widows: 1;
+    orphans: 1;
+    line-height: 1.3;
+}
+
+p {
+    margin:0;
+    text-indent:0.75em;
+    text-align:justify;
+}
+
+#title_page .title {font-size: 26pt;}
+#title_page .author {font-size: 18pt;}
+
+title, .contents, .plates, h1, h2 {
+    hyphens:none;
+}
+
+blockquote {margin: 0.5em;}
+
+.chapter {
+
+    padding: 0 0.2em;
+    page-break-before:always;
+}
+
+h2.xcont {
+    prince-bookmark-level: none;
+}
+
+
+h2 {
+    prince-bookmark-level:1;
+}
+
+#title_page *, .notitle {
+    prince-bookmark-level: none;
+}
+
+.contents a::after {
+    content: leader(".") target-counter(attr(href), page);
+}
+
+
+.contents a {
+    text-decoration: none;
+}
+
+
+.fsl, .fsp
+{
+    margin:0 !important;
+    page-break-before:always;
+    page-break-after:always;
+}
+
+
+.image
+{
+    text-align:center;
+    display:table;
+}
+
+
+.image div
+{
+    display:table-cell;
+    vertical-align:middle;
+    height: 100%;
+    width:100%;
+}
+
+i:after {
+    content:" ";
+}
+
+.fn {
+    display: prince-footnote;
+    counter-increment: footnote;
+    margin: 1em;
+    font-size: 0.85em;
+}
+
+hr {border: 0; border-top:1px dotted black;}

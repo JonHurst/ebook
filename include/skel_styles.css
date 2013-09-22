@@ -1,0 +1,9 @@
+.bsp_block {
+    margin: 0.5em 2em;
+    border:green dotted 1px;
+    text-align: center;
+}
+
+.bsp_block a {
+    color: green;
+}
