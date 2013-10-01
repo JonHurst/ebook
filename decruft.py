@@ -8,7 +8,9 @@ def remove_pagenums(r):
     def recursive_process(e):
         kill_list = []
         for c, se in enumerate(list(e)):
-            if se.tag == "{http://www.w3.org/1999/xhtml}span" and se.get("class") == "pagenum":
+            if ((se.tag == "{http://www.w3.org/1999/xhtml}span" and se.get("class") == "pagenum") or
+                (se.tag == "{http://www.w3.org/1999/xhtml}a" and se.get("name")
+                 and se.get("name")[:4] == "page")):
                 #add element to kill list
                 kill_list.append(se)
                 #if it exists, move tail of element to a sensible place
