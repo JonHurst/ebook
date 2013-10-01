@@ -3,6 +3,7 @@
 import sys
 import subprocess
 import xml.etree.ElementTree as ET
+import argparse
 
 bsp_template = """\
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -30,29 +31,42 @@ title_page_template = """\
 <span class="author">author</span></h1>
 </div>"""
 
-def bog_standard_para_p(e, allowable_para_classes):
-    if (e.tag != "{http://www.w3.org/1999/xhtml}p" or
-        (e.get("class") and e.get("class") not in allowable_para_classes) or
-        e.get("style")):
-        return False
-    for c in list(e):
-        for se in c.iter():
-            if ((se.tag not in [
-                        "{http://www.w3.org/1999/xhtml}i",
-                        "{http://www.w3.org/1999/xhtml}em",
-                        "{http://www.w3.org/1999/xhtml}b"
-                        ]) and not
-                (se.tag == "{http://www.w3.org/1999/xhtml}span" and
-                 se.get("class") in ["smcap", "it"])):
-                return False
-    return True
+
+def make_bog_standard_para_p(args):
+    allowable_para_classes = []
+    if args["class"]:
+        allowable_para_classes = args["class"]
+    allowable_tags = ["{http://www.w3.org/1999/xhtml}i",
+                      "{http://www.w3.org/1999/xhtml}em",
+                      "{http://www.w3.org/1999/xhtml}b",
+                      "{http://www.w3.org/1999/xhtml}strong"]
+    if args["tag"]:
+        allowable_tags.extend(["{http://www.w3.org/1999/xhtml}" + X for X in args["tag"]])
+    allowable_span_classes = ["smcap"]
+    if args["span_class"]:
+        allowable_span_classes.extend(args["span_class"])
+    print(allowable_para_classes, allowable_tags, allowable_span_classes)
+    def bog_standard_para_p(e):
+        if (e.tag != "{http://www.w3.org/1999/xhtml}p" or
+            (e.get("class") and e.get("class") not in allowable_para_classes) or
+            e.get("style")):
+            return False
+        for c in list(e):
+            for se in c.iter():
+                if (se.tag not in allowable_tags and not
+                    (se.tag == "{http://www.w3.org/1999/xhtml}span" and
+                     se.get("class") in allowable_span_classes)):
+                    return False
+        return True
+    return bog_standard_para_p
 
 
-def process_bsps(r, allowable_para_classes):
+def process_bsps(r, args):
+    bog_standard_para_p = make_bog_standard_para_p(args)
     bsp_elements = []
     def recursive_process(e):
         for c, se in enumerate(list(e)):
-            if bog_standard_para_p(se, allowable_para_classes):
+            if bog_standard_para_p(se):
                 bsp_elements.append(se)
                 ref = "bsp" + str(len(bsp_elements) - 1)
                 ph = ET.Element("{http://www.w3.org/1999/xhtml}div",
@@ -90,17 +104,33 @@ def collapse_placeholders(r):
 
 
 def main():
+    #parse arguments
+    parser = argparse.ArgumentParser(description="""\
+Seperate "bog standard paragraphs" to expose HTML skeleton.""")
+    parser.add_argument("-c", "--class", action="append",
+                        help="Allowable class for paragraph (multiple allowed)")
+    parser.add_argument("-s", "--span_class", action="append",
+                        help="Allowable class for any internal span tags (multiple allowed)")
+    parser.add_argument("-t", "--tag", action="append",
+                        help="Any additional tags that may be included (multiple allowed)")
+    parser.add_argument("-o", "--skeleton", default="skeleton.xhtml",
+                        help="Name of 'skeleton' output file")
+    parser.add_argument("-b", "--bsps", default="bsps.xhtml",
+                        help="Name of 'bog standard paragraphs' output file")
+    parser.add_argument("input", nargs="?", default="decruft.xhtml",
+                        help="XML Input file")
+    args = vars(parser.parse_args())
+    #process
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
-    txt = open(sys.argv[1], "r", encoding="utf-8").read()
+    txt = open(args["input"], "r", encoding="utf-8").read()
     txt = txt.replace("</head>", skeleton_headers)
     txt = txt.replace("<body>", "<body>" + "\n" + title_page_template)
     root = ET.fromstring(txt)
     #split out bog standard paragraphs
-    allowable_para_classes = sys.argv[2:]
-    bsp_el = process_bsps(root, allowable_para_classes)
+    bsp_el = process_bsps(root, args)
     collapse_placeholders(root)
     #write out modified xhtml
-    ET.ElementTree(root).write("skeleton.xhtml",
+    ET.ElementTree(root).write(args["skeleton"],
                                encoding="unicode",
                                xml_declaration=True)
     #create and write out bsps xhtml
@@ -113,7 +143,7 @@ def main():
         bsp.append(el)
         bsp.tail = "\n"
         bsp_body.append(bsp)
-    ET.ElementTree(bsp_root).write("bsps.xhtml",
+    ET.ElementTree(bsp_root).write(args["bsps"],
                                    encoding="unicode",
                                    xml_declaration=True)
 
