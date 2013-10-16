@@ -4,6 +4,7 @@ import sys
 import subprocess
 import xml.etree.ElementTree as ET
 import argparse
+import collections
 
 bsp_template = """\
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -32,7 +33,7 @@ title_page_template = """\
 </div>"""
 
 
-def make_bog_standard_para_p(args):
+def make_bog_standard_para_p(args, fail_list):
     allowable_para_classes = []
     if args["class"]:
         allowable_para_classes = args["class"]
@@ -45,25 +46,26 @@ def make_bog_standard_para_p(args):
     allowable_span_classes = ["smcap"]
     if args["span_class"]:
         allowable_span_classes.extend(args["span_class"])
-    print(allowable_para_classes, allowable_tags, allowable_span_classes)
     def bog_standard_para_p(e):
         if (e.tag != "{http://www.w3.org/1999/xhtml}p" or
             (e.get("class") and e.get("class") not in allowable_para_classes) or
             e.get("style")):
+            fail_list.append(e)
             return False
         for c in list(e):
             for se in c.iter():
                 if (se.tag not in allowable_tags and not
                     (se.tag == "{http://www.w3.org/1999/xhtml}span" and
                      se.get("class") in allowable_span_classes)):
+                    fail_list.append(se)
                     return False
         return True
     return bog_standard_para_p
 
 
-def process_bsps(r, args):
-    bog_standard_para_p = make_bog_standard_para_p(args)
+def process_bsps(r, bog_standard_para_p):
     bsp_elements = []
+    nonbsp_elements = []
     def recursive_process(e):
         for c, se in enumerate(list(e)):
             if bog_standard_para_p(se):
@@ -127,7 +129,9 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
     txt = txt.replace("<body>", "<body>" + "\n" + title_page_template)
     root = ET.fromstring(txt)
     #split out bog standard paragraphs
-    bsp_el = process_bsps(root, args)
+    fail = []
+    bog_standard_para_p = make_bog_standard_para_p(args, fail)
+    bsp_el = process_bsps(root, bog_standard_para_p)
     collapse_placeholders(root)
     #write out modified xhtml
     ET.ElementTree(root).write(args["skeleton"],
@@ -146,6 +150,14 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
     ET.ElementTree(bsp_root).write(args["bsps"],
                                    encoding="unicode",
                                    xml_declaration=True)
+    #report on nonbsp elements
+    e = collections.Counter([(X.tag, X.get("class", ""), X.get("style", "")) for X in fail])
+    for p, n in e.most_common(10):
+        s = p[0].replace("{http://www.w3.org/1999/xhtml}", "")
+        if p[1]: s += " class=\"" + p[1] + "\""
+        if p[2]: s += " style=\"" + p[2] + "\""
+        print(n, ":", s)
+
 
 
 
