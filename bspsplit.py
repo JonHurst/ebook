@@ -43,7 +43,7 @@ def make_bog_standard_para_p(args, fail_list):
                       "{http://www.w3.org/1999/xhtml}strong"]
     if args["tag"]:
         allowable_tags.extend(["{http://www.w3.org/1999/xhtml}" + X for X in args["tag"]])
-    allowable_span_classes = ["smcap"]
+    allowable_span_classes = [None, "smcap"]
     if args["span_class"]:
         allowable_span_classes.extend(args["span_class"])
     def bog_standard_para_p(e):

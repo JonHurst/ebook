@@ -6,24 +6,15 @@ import xml.etree.ElementTree as ET
 
 def remove_pagenums(r):
     def recursive_process(e):
-        kill_list = []
         for c, se in enumerate(list(e)):
             if ((se.tag == "{http://www.w3.org/1999/xhtml}span" and se.get("class") == "pagenum") or
                 (se.tag == "{http://www.w3.org/1999/xhtml}a" and se.get("name")
                  and se.get("name")[:4] == "page")):
-                #add element to kill list
-                kill_list.append(se)
-                #if it exists, move tail of element to a sensible place
-                if se.tail:
-                    if c == 0: #first subelement - add tail to element text
-                        e.text = (e.text or "") + se.tail
-                    else: #there is a previous sibling, so add it to its tail
-                        prev_sib = list(e)[c - 1]
-                        prev_sib.tail = (prev_sib.tail or "") + se.tail
+                tail = se.tail
+                se.clear()
+                se.tail = tail
             else:
                 recursive_process(se)
-        for k in kill_list:
-            e.remove(k)
     recursive_process(r)
 
 
