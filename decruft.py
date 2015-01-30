@@ -12,6 +12,7 @@ def remove_pagenums(r):
                  and se.get("name")[:4] == "page")):
                 tail = se.tail
                 se.clear()
+                se.tag = None
                 se.tail = tail
             else:
                 recursive_process(se)
