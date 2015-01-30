@@ -21,6 +21,7 @@ p {
     text-align:justify;
 }
 
+#title_page {margin-top: 10em;}
 #title_page .title {font-size: 26pt;}
 #title_page .author {font-size: 18pt;}
 
