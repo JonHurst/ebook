@@ -33,6 +33,14 @@ def process_bsps(r, bsp_dict):
 def main():
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
     main_tree = ET.parse(sys.argv[1])
+    removeids = main_tree.findall(
+        "./{http://www.w3.org/1999/xhtml}head/"
+        "{http://www.w3.org/1999/xhtml}link[@href='include/skel_styles.css']")
+    removeids += main_tree.findall(
+        "./{http://www.w3.org/1999/xhtml}head/{http://www.w3.org/1999/xhtml}script")
+    head = main_tree.find("./{http://www.w3.org/1999/xhtml}head")
+    for r in removeids:
+        head.remove(r)
     bsp_tree = ET.parse(sys.argv[2])
     bsp_dict = {}
     for e in bsp_tree.iter("{http://www.w3.org/1999/xhtml}div"):
