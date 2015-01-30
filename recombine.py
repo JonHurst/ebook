@@ -5,7 +5,8 @@ import sys
 
 
 def process_bsps(r, bsp_dict):
-    def recursive_process(e):
+    out = ET.Element(r.tag, r.attrib)
+    def recursive_process(e, cur):
         for c, se in enumerate(list(e)):
             if (se.tag == "{http://www.w3.org/1999/xhtml}div" and
                 se.attrib.get("class") == "bsp_block"):
@@ -17,12 +18,15 @@ def process_bsps(r, bsp_dict):
                     del bsps[1]
                     for i in range(bsp_start_i, bsp_end_i + 1):
                         bsps.append("bsp" + str(i))
-                se.text = ""
                 for bsp in bsps:
-                    se.append(bsp_dict[bsp])
+                    cur.append(bsp_dict[bsp])
             else:
-                recursive_process(se)
-    recursive_process(r)
+                n = ET.SubElement(cur, se.tag, se.attrib)
+                n.text = se.text
+                n.tail = se.tail
+                recursive_process(se, n)
+    recursive_process(r, out)
+    return out
 
 
 
@@ -33,10 +37,10 @@ def main():
     bsp_dict = {}
     for e in bsp_tree.iter("{http://www.w3.org/1999/xhtml}div"):
         bsp_dict[e.attrib["id"]] = e.find("{http://www.w3.org/1999/xhtml}p")
-    process_bsps(main_tree.getroot(), bsp_dict)
-    main_tree.write("recombined.xhtml",
-                    encoding="unicode",
-                    xml_declaration=True)
+    out = process_bsps(main_tree.getroot(), bsp_dict)
+    ET.ElementTree(out).write("recombined.xhtml",
+                              encoding="unicode",
+                              xml_declaration=True)
 
 
 
@@ -44,4 +48,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
