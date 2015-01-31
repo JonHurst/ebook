@@ -138,6 +138,12 @@ def prefix_map(spine_groups):
     return prefix_map
 
 
+def get_contents(dir_name):
+    tree = ET.parse(os.path.join(dir_name, "META-INF/container.xml"))
+    rf = tree.find(".//{urn:oasis:names:tc:opendocument:xmlns:container}rootfile")
+    return rf.attrib["full-path"]
+
+
 def main():
     if len(sys.argv) != 2 or sys.argv[1][0] == "-":
         print("Usage:", sys.argv[0], "epubfile")
@@ -145,14 +151,15 @@ def main():
     epub = sys.argv[1]
     tmpdir = tempfile.TemporaryDirectory()
     unzip_epub(epub, tmpdir)
-    spine, copylist = process_opf(os.path.join(tmpdir.name, "content.opf"))
-    spine_groups = group_spine(spine, tmpdir.name)
+    opf = os.path.join(tmpdir.name, get_contents(tmpdir.name))
+    spine, copylist = process_opf(opf)
+    spine_groups = group_spine(spine, os.path.dirname(opf))
     #build output files
     ET.register_namespace("", "http://www.w3.org/1999/xhtml")
     output_dirname = os.path.dirname(epub)
     pm = prefix_map(spine_groups)
     for sg in spine_groups:
-        output_group_file(sg, tmpdir.name, output_dirname, pm)
+        output_group_file(sg, os.path.dirname(opf), output_dirname, pm)
     #copy other files
     for f in copylist:
         copy_filename = os.path.join(output_dirname, f)
@@ -160,7 +167,7 @@ def main():
         if dest_directory and not os.path.isdir(dest_directory):
             os.makedirs(dest_directory)
         print("Copying", copy_filename)
-        shutil.copy(os.path.join(tmpdir.name, f), copy_filename)
+        shutil.copy(os.path.join(os.path.dirname(opf), f), copy_filename)
 
 
 
