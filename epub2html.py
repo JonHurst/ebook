@@ -102,9 +102,10 @@ def modify_links(el, prefix_map):
         href = e.get("href")
         if not href or href.startswith("http://") or href.startswith("https://"):
             continue
-        prefix, suffix = href.split("#")
-        if prefix in prefix_map.keys():
-            e.set("href", prefix_map[prefix] + suffix)
+        parts = href.split("#")
+        parts.append("")
+        if parts[0] in prefix_map.keys():
+            e.set("href", prefix_map[parts[0]] + parts[1])
 
 
 def fix_entities(text):
