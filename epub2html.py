@@ -7,7 +7,8 @@ import zipfile
 import xml.etree.ElementTree as ET
 import shutil
 import hashlib
-
+import html.entities
+import re
 
 def unzip_epub(epub, tmpdir):
     """An epub is packaged as a zip file. This function extracts it
@@ -97,23 +98,42 @@ def modify_links(el, prefix_map):
             e.set("href", prefix_map[prefix] + suffix)
 
 
+def fix_entities(text):
+    entities = set(re.findall(r"&(\w+);", text))
+    entities -= set(("quot", "amp", "apos", "lt", "gt"))
+    for e in entities:
+        text = text.replace("&" + e +";",
+                            chr(html.entities.name2codepoint[e]))
+    return text
+
+
+def parse_xhtml(filename):
+    """Parses an xhtml file with conversion of named entities to utf-8 characters"""
+    text = open(filename, encoding="utf-8").read()
+    text = fix_entities(text)
+    return ET.XML(text)
+
+
 def output_group_file(spine_group, input_dir, output_dir, prefix_map):
     """Takes a spine group and combines the sub-files into outputs a
     single file with the filename of the first file to the output_dir
     directory. ids and links are fixed up, and a new anchor with the
     id equal to the sub-file's idref is placed at the start of each
     sub-file."""
-    first_file = ET.parse(os.path.join(input_dir, spine_group[0][1]))
+    print("Reading", spine_group[0][1])
+    first_file = parse_xhtml(os.path.join(input_dir, spine_group[0][1]))
     body = first_file.find(".//{http://www.w3.org/1999/xhtml}body")
-    body.insert(0, ET.Element("{http://www.w3.org/1999/xhtml}a", {"id": ""}))
+    body.insert(0, ET.Element("{http://www.w3.org/1999/xhtml}a",
+                              {"id": "", "class": "epub_break"}))
     modify_ids(body, spine_group[0][0])
     modify_links(body, prefix_map)
     for se in spine_group[1:]:
-        next_file = ET.parse(os.path.join(input_dir, se[1]))
+        print("Reading", se[1])
+        next_file = parse_xhtml(os.path.join(input_dir, se[1]))
         additional_body = next_file.find(".//{http://www.w3.org/1999/xhtml}body")
         additional_body.insert(0, ET.Element(
             "{http://www.w3.org/1999/xhtml}a",
-            {"id": ""}))
+            {"id": "", "class": "epub_break"}))
         modify_ids(additional_body, se[0])
         modify_links(additional_body, prefix_map)
         for e in additional_body:
@@ -121,7 +141,7 @@ def output_group_file(spine_group, input_dir, output_dir, prefix_map):
     #output file
     output_filename = os.path.join(output_dir, spine_group[0][1])
     print("Writing", output_filename)
-    first_file.write(
+    ET.ElementTree(first_file).write(
         output_filename,
         encoding="unicode",
         xml_declaration=True)
