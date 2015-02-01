@@ -61,13 +61,14 @@ def query_single(s, dialect, skip):
         m = re.search(r"^\w+", s[pos + 1:])
         dialect_word = m.group(0)
         dialect["'" + dialect_word] = u"\u02bc" + dialect_word
+    print()
     return s
 
 
 def process_singles(p, dialect):
     skip = set()
     re_close = re.compile(r"([^\s\w])'(\s+|$)")
-    re_candidates = re.compile(r"(^|\s)'[\w]", flags=re.MULTILINE)
+    re_candidates = re.compile("(^|\\s|\u201c)'[\\w]", flags=re.MULTILINE)
     while True:
         #replace any dialect
         for k in dialect: p = p.replace(k, dialect[k])
@@ -107,7 +108,6 @@ def process_para(p, dialect):
     return p
 
 
-
 def curlify_element(e, dialect):
     #Text in element looks like e.g.:
     #el_text<se>se_text<sse>sse_text</sse>sse_tail</se>se_tail<se>se_text</se>se_tail
@@ -118,23 +118,30 @@ def curlify_element(e, dialect):
     #for processing looks like:
     #el_text<se>se_text</se>se_tail<se>se_text</se>se_tail
     #note that se_text and will already have been processed.
-    text_blocks = [e.text or ""]
-    for se in e:
-        curlify_element(se, dialect)
-        text_blocks.append(se.text or "")
-        text_blocks.append(se.tail or "")
-    text = "".join(text_blocks)
+    text_blocks = []
+    def flatten_text(e):
+        text_blocks.append(e.text or "")
+        for se in e:
+            flatten_text(se)
+        text_blocks.append(e.tail or "")
+    flatten_text(e)
+    text = "".join(text_blocks[:-1])
     if not text: return
     text = process_para(text, dialect)
     #we now have a processed text string and need to fit the modified version back into
     #the tree.
-    for c, b in enumerate(text_blocks):
-        text_blocks[c] = text[:len(b)]
-        text = text[len(b):]
-    e.text = text_blocks[0]
-    for c, se in enumerate(e):
-        se.text = text_blocks[2 * c + 1]
-        se.tail = text_blocks[2 * c + 2]
+    text += text_blocks[-1]
+    def unflatten_text(e, c=0):
+        nonlocal text
+        e.text = text[:len(text_blocks[c])]
+        text = text[len(text_blocks[c]):]
+        c += 1
+        for se in e:
+            unflatten_text(se, c)
+        e.tail = text[:len(text_blocks[c])]
+        text = text[len(text_blocks[c]):]
+        c += 1
+    unflatten_text(e)
 
 
 def fix_entities(text):
@@ -194,10 +201,12 @@ def main():
     text = fix_entities(text)
     #process the tree
     tree = et.XML(text)
-    body = tree.find(".//{http://www.w3.org/1999/xhtml}body")
+    blocks = []
+    for tag in ("p", "h1", "h2", "h3", "h4", "li", "td"):
+        blocks.extend(tree.findall(".//{http://www.w3.org/1999/xhtml}" + tag))
     dialect = {}
-    ble = len(body)
-    for c, se in enumerate(body):
+    ble = len(blocks)
+    for c, se in enumerate(blocks):
         print(c + 1, "of", ble)
         curlify_element(se, dialect)
         if args["strict"]:
@@ -206,7 +215,7 @@ def main():
     rmap = (['"', '{"}', 0],
             ["'", "{'}", 0],
             ["\u02bc", "\u2019", 0])
-    replace_text(body, rmap)
+    replace_text(tree, rmap)
     #output file
     shutil.copyfile(args["filename"], args["filename"] + ".old")
     et.ElementTree(tree).write(args["filename"],
