@@ -56,7 +56,15 @@ def head_text_digest(filename):
     text = open(filename).read()
     head_start = text.find("<head")
     head_end = text.find("/head>")
-    return hashlib.sha1(text[head_start:head_end].encode()).hexdigest()
+    h = ET.XML(fix_entities(text[head_start:head_end + 6]))
+    s = []
+    for el in h:
+        if el.tag == "title": continue
+        s.append((el.tag,
+                 sorted([(X, el.attrib[X]) for X in el.attrib]),
+                 el.text))
+    s.sort()
+    return hashlib.sha1(str(s).encode()).digest()
 
 
 def group_spine(spine, input_dir):
