@@ -33,18 +33,19 @@ def process_opf(opf_filename):
     tree = ET.parse(opf_filename)
     manifest = tree.find(".//{http://www.idpf.org/2007/opf}manifest")
     id_dict = {}
-    copylist = []
+    filelist = set()
     for item in manifest.findall("{http://www.idpf.org/2007/opf}item"):
         filename = item.get("href")
-        id_dict[item.get("id")] = filename
-        if item.get("media-type").find("application") == -1:
-            copylist.append(filename)
+        i = item.get("id")
+        id_dict[i] = filename
+        filelist.add(i)
     spine = tree.find(".//{http://www.idpf.org/2007/opf}spine")
     retval = []
     for itemref in spine.findall("{http://www.idpf.org/2007/opf}itemref"):
         idref = itemref.get("idref")
         retval.append((idref, id_dict[idref]))
-    return retval, copylist
+        filelist.remove(idref)
+    return retval, [id_dict[X] for X in filelist]
 
 
 def head_text_digest(filename):
