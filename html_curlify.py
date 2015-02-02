@@ -131,13 +131,14 @@ def curlify_element(e, dialect):
     #we now have a processed text string and need to fit the modified version back into
     #the tree.
     text += text_blocks[-1]
-    def unflatten_text(e, c=0):
-        nonlocal text
+    c = 0
+    def unflatten_text(e):
+        nonlocal text, c
         e.text = text[:len(text_blocks[c])]
         text = text[len(text_blocks[c]):]
         c += 1
         for se in e:
-            unflatten_text(se, c)
+            unflatten_text(se)
         e.tail = text[:len(text_blocks[c])]
         text = text[len(text_blocks[c]):]
         c += 1
