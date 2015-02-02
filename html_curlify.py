@@ -191,6 +191,8 @@ def main():
                      "one containing curly quotes. Old file copied with .old suffix."))
     parser.add_argument("-s", "--strict", action="store_true",
                         help="Apply stricter checking of generated quotes")
+    parser.add_argument("-i", "--include", action="append",
+                        help="Include additional block with form tag[.class] (e.g. div or div.poem)")
     parser.add_argument("filename", nargs="?", default="bsps.xhtml",
                         help="File to process (xhtml format, utf-8 encoding)")
     args = vars(parser.parse_args())
@@ -205,6 +207,18 @@ def main():
     blocks = []
     for tag in ("p", "h1", "h2", "h3", "h4", "li", "td"):
         blocks.extend(tree.findall(".//{http://www.w3.org/1999/xhtml}" + tag))
+    inc = args["include"] or []
+    for i in inc:
+        s = i.split(".")
+        t = tree.findall(
+            ".//{http://www.w3.org/1999/xhtml}" + s[0])
+        if len(s) == 1: #no class specified
+            blocks.extend(t)
+        else: #use substring to allow for multiple classes
+            for e in t:
+                c = e.attrib.get("class", "")
+                if (c.find(s[1]) != -1):
+                    blocks.append(e)
     dialect = {}
     ble = len(blocks)
     for c, se in enumerate(blocks):
