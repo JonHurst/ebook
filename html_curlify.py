@@ -67,7 +67,7 @@ def query_single(s, dialect, skip):
 
 def process_singles(p, dialect):
     skip = set()
-    re_close = re.compile(r"([^\s\w])'(\s+|$)")
+    re_close = re.compile(r"([^\s\w])'(\s+|$|\u201d)")
     re_candidates = re.compile("(^|\\s|\u201c)'[\\w]", flags=re.MULTILINE)
     while True:
         #replace any dialect
