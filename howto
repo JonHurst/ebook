@@ -1,11 +1,23 @@
-1. Convert file to UTF-8 and update any charset references.
+1. For html, convert file to UTF-8 and update any charset
+references, then run decruft.py to get an xhtml file. For epub run
+epub2html.py to extract/combine to an xhtml file.
+
 1a. Add a symlink to include directory
-2. Run decruft.py -> gives decruft.xhtml
-3. Run bspsplit.py on decruft.xhtml -> gives skeleton.xhtml and bsps.xhtml
-4. Edit skeleton.xhtml, using chromium audit to remove unused css
-5. Run recombine.py on skeleton.xhtml and bsps.xhtml -> gives recombine.xhtml
-6. Run html_curlify on recombine.xhtml
-7. Sort out remaining {"} and {'}
-8. Replace em-dashes with spaced en-dashes
-9. Replace space between em-dash and closing quotes with nbsp.
-10. Run prince.
+
+3. Run bspsplit.py on xhtml -> gives skeleton.xhtml and bsps.xhtml
+
+4. Edit skeleton.xhtml. Make sure to add meta author and correct
+title. Run make-ebook.sh on skeleton and check results. Edit css as
+necessary.
+
+5. Run html_curlify on skeleton, and correct other punctuation:
+   (.... → …. | ... → … | ---- → —— | -- →  –_  |
+   —— → ---- then — →  –_  then ---- → —— |  _” → >" as required)
+
+6. Run html_curlify on bsps and correct as for 5
+
+7. Run recombine.py on skeleton.xhtml and bsps.xhtml -> gives recombine.xhtml
+
+8. Run make-ebook.sh 6 recombine.xhtml to get pdf
+
+9. Check pdf, rename it to title and email it to bomabadil.
