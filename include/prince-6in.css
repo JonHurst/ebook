@@ -5,6 +5,9 @@
     margin: 2mm 0.75mm 0mm 0.75mm;
 }
 
+body {
+    padding-top:6pt;
+}
 
 body, td {
     margin:0.25em;
