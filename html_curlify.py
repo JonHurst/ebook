@@ -241,11 +241,27 @@ def main():
         curlify_element(se, dialect, strict)
         if strict:
             quote_balance_check(se)
-    #mark remaining straight quotes and replace apostrophes with right singles
-    rmap = (['"', '{"}', 0],
-            ["'", "{'}", 0],
-            ["\u02bc", "\u2019", 0])
-    replace_text(tree, rmap)
+    #mark remaining straight quotes and replace apostrophes with right singles,
+    #sort out dashes and ellipses
+    rmap = (
+        ['"', '{"}', 0],
+        ["'", "{'}", 0],
+        ["\u02bc", "\u2019", 0],
+        [" . . . .", "….", 0],
+        [" . . . ", " … ", 0],
+        ["....", "….", 0],
+        [" ... ", " … ", 0],
+        ["… ”", "…”", 0],
+        ["… ’", "…’", 0],
+        ["----", "&dmdash;", 0],
+        ["——", "&dmdash;", 0],
+        ["--", " – ", 0],
+        ["—", " – ", 0],
+        ["&dmdash;", "——", 0],
+        [" – ”", " –”", 0],
+        [" – ’", " –’", 0]
+    )
+    replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
     #output file
     shutil.copyfile(args["filename"], args["filename"] + ".old")
     et.ElementTree(tree).write(args["filename"],
