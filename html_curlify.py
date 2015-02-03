@@ -66,8 +66,10 @@ def query_single(s, dialect, skip):
 
 
 def process_singles(p, dialect):
+    """Process a paragraph to curl single quotes. It is assumed that apostrophes and
+    double quotes are already curled before calling this function."""
     skip = set()
-    re_close = re.compile(r"([^\s\w])'(\s+|$|\u201d)")
+    re_close = re.compile(r"([^\s])'(\s+|$|\u201d)")
     re_candidates = re.compile("(^|\\s|\u201c)'[\\w]", flags=re.MULTILINE)
     while True:
         #replace any dialect
@@ -82,42 +84,54 @@ def process_singles(p, dialect):
         #singles and apostrophes back to straight.
         sections = p.split(u"\u2019")
         for c, s in enumerate(sections[:-1]):
+            #if there is already an opening single, it is likely that the
+            #quote was indeed a closing single
+            if s.find("\u2018") != -1:
+                sections[c] += "\u2019"
+                continue
+            #look for anything that may be an opening quote. This means a quote
+            #followed by a word character that is preceded either by space, the
+            #beginning of the line or an opening double quote
             candidate_openers = re_candidates.findall(s)
-            existing_openers_count = s.count("‘")
-            if len(candidate_openers) + existing_openers_count == 1:
-                sections[c] = s.replace("'", "‘")
-            elif len(candidate_openers) + existing_openers_count == 0:
-                #a closing single without any candidate opening single is
-                #a sign of trouble, so put everything back and move on
-                p = re.sub(r"[‘’\u02bc]", "'", p)
-                break
-        p = "’".join(sections)
+            #if we only find one candidate, assume it is an opening quote and we've
+            #correctly split on a closing quote
+            if len(candidate_openers) == 1:
+                sections[c] = s.replace("'", "\u2018")
+                sections[c] += "\u2019"
+            #if there is no candidate opening quote, we've likely mistaken an apostrophe
+            #for a closing quote
+            elif len(candidate_openers) == 0:
+                sections[c] += "\u02bc"
+            else:
+            #if we have more than one opening quote, one of them is probably an apostrophe.
+            #Assume that we were correct in the original diagnosis of a closing single.
+                sections[c] += "\u2019"
+        p = "".join(sections)
         r = query_single(p, dialect, skip)
         if r == None: break
         else: p = r
     return p
 
 
-def process_para(p, dialect):
+def process_para(p, dialect, strict):
     #replace suspected apostrophes with \u02bc
-    #single preceded by a word characters is a suspected apostrophe
-    p = re.sub(r"(\w)'", "\\1\u02bc", p)
+    #if strict single preceded by a word characters is a suspected apostrophe
+    if strict:
+        p = re.sub(r"(\w)'", "\\1\u02bc", p)
+    else: #if not strict, ' in middle of work or xxxs' os an apostrophe
+        p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
+        p = re.sub(r"s'", "s\u02bc", p)
     #do optimistic processing
     p = process_doubles(p)
     p = process_singles(p, dialect)
     return p
 
 
-def curlify_element(e, dialect):
+def curlify_element(e, dialect, strict):
     #Text in element looks like e.g.:
     #el_text<se>se_text<sse>sse_text</sse>sse_tail</se>se_tail<se>se_text</se>se_tail
     #where <se> and <sse> represent the positions of sub(sub)-elements and don't contribute
     #text.
-    #We process the deepest elements first and work our way out recursively.
-    #When processing, we consider the element and immediate children only, so our text
-    #for processing looks like:
-    #el_text<se>se_text</se>se_tail<se>se_text</se>se_tail
-    #note that se_text and will already have been processed.
     text_blocks = []
     def flatten_text(e):
         text_blocks.append(e.text or "")
@@ -127,7 +141,7 @@ def curlify_element(e, dialect):
     flatten_text(e)
     text = "".join(text_blocks[:-1])
     if not text: return
-    text = process_para(text, dialect)
+    text = process_para(text, dialect, strict)
     #we now have a processed text string and need to fit the modified version back into
     #the tree.
     text += text_blocks[-1]
@@ -205,7 +219,7 @@ def main():
     #process the tree
     tree = et.XML(text)
     blocks = []
-    for tag in ("p", "h1", "h2", "h3", "h4", "li", "td"):
+    for tag in ("p", "h1", "h2", "h3"):
         blocks.extend(tree.findall(".//{http://www.w3.org/1999/xhtml}" + tag))
     inc = args["include"] or []
     for i in inc:
@@ -221,10 +235,11 @@ def main():
                     blocks.append(e)
     dialect = {}
     ble = len(blocks)
+    strict = args["strict"] or False
     for c, se in enumerate(blocks):
         print(c + 1, "of", ble)
-        curlify_element(se, dialect)
-        if args["strict"]:
+        curlify_element(se, dialect, strict)
+        if strict:
             quote_balance_check(se)
     #mark remaining straight quotes and replace apostrophes with right singles
     rmap = (['"', '{"}', 0],
