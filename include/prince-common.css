@@ -10,6 +10,8 @@ body, td {
     prince-image-resolution: 166dpi;
     prince-hyphenate-lines: 2;
     hyphens: auto;
+    widows: 1;
+    orphans: 1;
     line-height: 1.3;
 }
 
