@@ -17,20 +17,23 @@ p{color:black;}</style>
 <body/>
 </html>"""
 
+
 skeleton_headers = """\
-<!--Start BSP headers-->
+<skel-headers xmlns="http://www.w3.org/1999/xhtml">
+
 <link rel="stylesheet" type="text/css" href="include/skel_styles.css"/>
 <script src="include/jquery-1.10.2.min.js" type="text/javascript"/>
 <script src="include/script.js" type="text/javascript" />
-<!--End BSP headers-->
-</head>"""
+</skel-headers>
+"""
 
 title_page_template = """\
-<div id="title_page">
-<h1><span class="title">title</span><br/>
-<span style="font-size:medium;">by</span><br/>
-<span class="author">author</span></h1>
-</div>"""
+<div id="title_page" xmlns="http://www.w3.org/1999/xhtml">
+  <h1><span class="title">title</span><br/>
+  <span style="font-size:medium;">by</span><br/>
+  <span class="author">author</span></h1>
+</div>
+"""
 
 
 def make_bog_standard_para_p(args, fail_list):
@@ -73,7 +76,7 @@ def process_bsps(r, bog_standard_para_p):
                 ref = "bsp" + str(len(bsp_elements) - 1)
                 ph = ET.Element("{http://www.w3.org/1999/xhtml}div",
                                 {"id": ref, "class": "bsp_ph"})
-                ph.tail = "\n"
+                ph.tail = se.tail
                 e.insert(c, ph)
                 e.remove(se)
             else:
@@ -119,24 +122,36 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
                         help="Name of 'skeleton' output file")
     parser.add_argument("-b", "--bsps", default="bsps.xhtml",
                         help="Name of 'bog standard paragraphs' output file")
+    parser.add_argument("-a", "--add_title", action="store_true",
+                        help="Insert a title page block at the top of the skeleton")
     parser.add_argument("input", nargs="?", default="decruft.xhtml",
                         help="XML Input file")
     args = vars(parser.parse_args())
     #process
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
-    txt = open(args["input"], "r", encoding="utf-8").read()
-    txt = txt.replace("</head>", skeleton_headers)
-    txt = txt.replace("<body>", "<body>" + "\n" + title_page_template)
-    root = ET.fromstring(txt)
+    root = ET.parse(args["input"])
+    head = root.find(".//{http://www.w3.org/1999/xhtml}head")
+    body = root.find(".//{http://www.w3.org/1999/xhtml}body")
+    #add skeleton headers
+    skel_headers = [se for se in ET.XML(skeleton_headers)]
+    skel_headers[-1].tail = head[-1].tail
+    head[-1].tail = "\n\n"
+    head.extend(skel_headers)
+    #add title page
+    if args.get("add-title"):
+        title_page = ET.XML(title_page_template)
+        title_page.tail = body.text
+        body.text = "\n\n"
+        body.insert(0, title_page)
     #split out bog standard paragraphs
     fail = []
     bog_standard_para_p = make_bog_standard_para_p(args, fail)
-    bsp_el = process_bsps(root, bog_standard_para_p)
-    collapse_placeholders(root)
+    bsp_el = process_bsps(body, bog_standard_para_p)
+    collapse_placeholders(body)
     #write out modified xhtml
-    ET.ElementTree(root).write(args["skeleton"],
-                               encoding="unicode",
-                               xml_declaration=True)
+    root.write(args["skeleton"],
+               encoding="unicode",
+               xml_declaration=True)
     #create and write out bsps xhtml
     bsp_root = ET.fromstring(bsp_template)
     bsp_body = bsp_root.find("{http://www.w3.org/1999/xhtml}body")
@@ -152,11 +167,12 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
                                    xml_declaration=True)
     #report on nonbsp elements
     e = collections.Counter([(X.tag, X.get("class", ""), X.get("style", "")) for X in fail])
-    for p, n in e.most_common(10):
+    print("Skeleton now contains:")
+    for p, n in e.most_common():
         s = p[0].replace("{http://www.w3.org/1999/xhtml}", "")
         if p[1]: s += " class=\"" + p[1] + "\""
         if p[2]: s += " style=\"" + p[2] + "\""
-        print(n, ":", s)
+        print(" ", n, ":", s)
 
 
 
