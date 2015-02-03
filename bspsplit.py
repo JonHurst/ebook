@@ -138,7 +138,7 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
     head[-1].tail = "\n\n"
     head.extend(skel_headers)
     #add title page
-    if args.get("add-title"):
+    if args.get("add_title"):
         title_page = ET.XML(title_page_template)
         title_page.tail = body.text
         body.text = "\n\n"
