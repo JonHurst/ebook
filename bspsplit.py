@@ -49,10 +49,16 @@ def make_bog_standard_para_p(args, fail_list):
     allowable_span_classes = [None, "smcap"]
     if args["span_class"]:
         allowable_span_classes.extend(args["span_class"])
+    def empty_p(e):
+        if e.text and len(e.text.strip()): return False
+        for se in e:
+            if se.tail and len(se.tail.strip()): return False
+            if empty_p(se) == False: return False
+        return True
     def bog_standard_para_p(e):
         if (e.tag != "{http://www.w3.org/1999/xhtml}p" or
             (e.get("class") and e.get("class") not in allowable_para_classes) or
-            e.get("style")):
+            e.get("style") or empty_p(e)):
             fail_list.append(e)
             return False
         for c in list(e):
