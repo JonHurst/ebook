@@ -14,4 +14,4 @@ then
 fi
 
 cp "${1}" "${1}.old"
-tidy -asxhtml -utf8 --indent auto --quote-nbsp no --write-back yes "$1"
+tidy -asxhtml -utf8 --wrap 110 --indent auto --quote-nbsp no --write-back yes "$1"
