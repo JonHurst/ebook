@@ -17,20 +17,16 @@ import os
 
 context=200
 
+
 def process_doubles(p):
-    #double at start of line, not followed by space is an opening double
-    p = re.sub(r'^"(\S)', '\u201c\\1', p, flags=re.MULTILINE)
-    #double at end of line, preceded by a character that is neither
-    #space nor digit is a closing double
-    p = re.sub(r'([^\s\d])"$', '\\1\u201d', p, flags=re.MULTILINE)
-    #double preceded by space or ' or \u2018 or ( and followed by
-    #word character or ' or \u2018 is an opening double
-    p = re.sub('(\\s+|[\(\'\u2018])\"([\\w\'\u2018])', '\\1\u201c\\2', p)
-    #double preceded by a character that is not a space
-    #and followed by space|'|[)—,:;.\u2019] is a closing double
-    p = re.sub('([^\\s])\"(\\s+|[\)\'—\.,:;\u2019])', '\\1\u201d\\2', p)
-    #double preceded by emdash and followed by word character is an opening double
-    p = re.sub('—\"(\\w)', '—\u201c\\1', p)
+    #double touching a letter will face that letter. For closing, some punctuation
+    #is equivalent to a letter
+    p = re.sub(r'"(\w)', '\u201c\\1', p)
+    p = re.sub(r'([\w.,;:?!])"', '\\1\u201d', p)
+    #double touching space (or equivalently start or end of line) will
+    #face away from that space
+    p = re.sub(r'(^|\s)"', '\\1\u201c', p, flags=re.MULTILINE)
+    p = re.sub(r'"($|\s)', '\u201d\\1', p, flags=re.MULTILINE)
     return p
 
 
@@ -72,42 +68,39 @@ def process_singles(p, dialect):
     """Process a paragraph to curl single quotes. It is assumed that apostrophes and
     double quotes are already curled before calling this function."""
     skip = set()
-    re_close = re.compile(r"([^\s])'(\s+|$|\u201d)")
-    re_candidates = re.compile("(^|\\s|\u201c)'[\\w]", flags=re.MULTILINE)
+    re_close = re.compile("'([\\s\u201d.,;:!]|$)")
     while True:
         #replace any dialect
-        for k in dialect: p = p.replace(k, dialect[k])
-        #single preceded by a character that is neither word character nor
-        #space and followed by space or eol is a closing single
-        p = re_close.sub(r'\1’\2', p)
-        #break the para into sections on closing single quotes. If there
-        #is only one candidate opening quote convert it. If more, leave
-        #them for manual intervention (one of the assumed apostrophes is
-        #likely a closing single). If none, we have a problem so set all
-        #singles and apostrophes back to straight.
-        sections = p.split(u"\u2019")
+        for k in dialect:
+            p = re.sub("(^|\\W)%s($|\\W)" % k, "\\1%s\\2" % dialect[k], p)
+        #single followed by space, \u201d etc. or end of line is likely a closing single
+        #(although it may be an apostrophe)
+        p = re_close.sub('\u2019\\1', p)
+        #break the para into sections on closing single quotes.
+        sections = p.split("\u2019")
         for c, s in enumerate(sections[:-1]):
-            #if there is already an opening single, it is likely that the
+            #if there is already an opening single (previously determined
+            #interactively) in the section, it is likely that the
             #quote was indeed a closing single
             if s.find("\u2018") != -1:
                 sections[c] += "\u2019"
                 continue
-            #look for anything that may be an opening quote. This means a quote
-            #followed by a word character that is preceded either by space, the
-            #beginning of the line or an opening double quote
-            candidate_openers = re_candidates.findall(s)
+            #assume all remaining quotes in the section are candidates
+            #for being a matching opener
+            candidate_openers = sections[c].count("'")
             #if we only find one candidate, assume it is an opening quote and we've
             #correctly split on a closing quote
-            if len(candidate_openers) == 1:
+            if candidate_openers == 1:
                 sections[c] = s.replace("'", "\u2018")
                 sections[c] += "\u2019"
             #if there is no candidate opening quote, we've likely mistaken an apostrophe
             #for a closing quote - put the ' back to trigger query
-            elif len(candidate_openers) == 0:
+            elif candidate_openers == 0:
                 sections[c] += "'"
             else:
             #if we have more than one opening quote, one of them is probably an apostrophe.
-            #Assume that we were correct in the original diagnosis of a closing single.
+            #Assume that we were correct in the original diagnosis of a closing single, but leave
+            #the candidates unchanged
                 sections[c] += "\u2019"
         p = "".join(sections)
         r = query_single(p, dialect, skip)
