@@ -58,9 +58,12 @@ def query_single(s, dialect, skip):
         skip.add(pos)
     elif t == "d":
         s = s[:pos] + "\u02bc" + s[pos + 1:]
+        e = re.search(r"\w+$", s[:pos])
         m = re.search(r"^\w+", s[pos + 1:])
-        dialect_word = m.group(0)
-        dialect["'" + dialect_word] = u"\u02bc" + dialect_word
+        dialect_word_start = e.group(0) if e else ""
+        dialect_word_end = m.group(0) if m else ""
+        dialect[dialect_word_start + "'" + dialect_word_end] = (
+            dialect_word_start + u"\u02bc" + dialect_word_end)
     print()
     return s
 
@@ -99,9 +102,9 @@ def process_singles(p, dialect):
                 sections[c] = s.replace("'", "\u2018")
                 sections[c] += "\u2019"
             #if there is no candidate opening quote, we've likely mistaken an apostrophe
-            #for a closing quote
+            #for a closing quote - put the ' back to trigger query
             elif len(candidate_openers) == 0:
-                sections[c] += "\u02bc"
+                sections[c] += "'"
             else:
             #if we have more than one opening quote, one of them is probably an apostrophe.
             #Assume that we were correct in the original diagnosis of a closing single.
@@ -267,6 +270,7 @@ def main():
     et.ElementTree(tree).write(args["filename"],
                                encoding="unicode",
                                xml_declaration=True)
+    print("Dialect", " : ".join(sorted(dialect.keys())))
     print("Wrote", args["filename"])
     print("Need to fix", rmap[0][2], rmap[0][1], "and",
           rmap[1][2], rmap[1][1])
