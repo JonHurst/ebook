@@ -270,11 +270,16 @@ def main():
     )
     replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
     #output file
-    shutil.copyfile(args["filename"], args["filename"] + ".old")
+    c, backup_filename = 0, args["filename"] + ".old"
+    print(backup_filename)
+    while os.path.exists(backup_filename):
+        c += 1
+        backup_filename = args["filename"] + ".old(%s)" % c
+    shutil.copyfile(args["filename"], backup_filename)
     et.ElementTree(tree).write(args["filename"],
                                encoding="unicode",
                                xml_declaration=True)
-    print("Dialect", " : ".join(sorted(dialect.keys())))
+    print("Dialect: ", " : ".join(sorted(dialect.keys())))
     print("Wrote", args["filename"])
     print("Need to fix", rmap[0][2], rmap[0][1], "and",
           rmap[1][2], rmap[1][1])
