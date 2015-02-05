@@ -15,8 +15,6 @@ import os
 #\u201c is left double quote
 #\u201d id right double quote
 
-context=200
-
 
 def process_doubles(p):
     #double touching a letter will face that letter. For closing, some punctuation
@@ -27,85 +25,86 @@ def process_doubles(p):
     #face away from that space
     p = re.sub(r'(^|\s)"', '\\1\u201c', p, flags=re.MULTILINE)
     p = re.sub(r'"($|\s)', '\u201d\\1', p, flags=re.MULTILINE)
+    #error case of spaces on both sides - restore "
+    p = re.sub('\u201c($|\\s)', '"\\1', p, flags=re.MULTILINE)
     return p
 
 
-def query_single(s, dialect, skip):
-    #find the first ' not in skip
-    startpos = 0
+def query_single(s, start, end, dialect):
+    context = 200#change this to show more or less context for query
     while True:
-        pos = s.find("'", startpos)
-        if pos == -1: return None
-        if pos not in skip: break
-        startpos = pos + 1
-    print(s[max(pos - context, 0):pos] +
-          "\033[31m[\033[0m" + s[pos] + "\033[31m]\033[0m" +
-          s[pos + 1:min(pos + context, len(s))])
-    t = ""
-    while t not in ("<", ">", "s", "d"):
-        t = input("[<,>,s,d,?] :")
-        if t == "?":
-            print("<:opening single, >:closing single, s:skip, d:dialect")
-    if t == "<":
-        s = s[:pos] + "\u2018" + s[pos + 1:]
-    elif t == ">":
-        s = s[:pos] + "\u2019" + s[pos + 1:]
-    elif t == "s":
-        skip.add(pos)
-    elif t == "d":
-        s = s[:pos] + "\u02bc" + s[pos + 1:]
-        e = re.search(r"\w+$", s[:pos])
-        m = re.search(r"^\w+", s[pos + 1:])
-        dialect_word_start = e.group(0) if e else ""
-        dialect_word_end = m.group(0) if m else ""
-        dialect[dialect_word_start + "'" + dialect_word_end] = (
-            dialect_word_start + u"\u02bc" + dialect_word_end)
-    print()
-    return s
+        s = replace_dialect(s, dialect)
+        pos = s.find("'", start, end)
+        if pos == -1: return s
+        print(s[max(pos - context, 0):pos] +
+              "\033[31m[\033[0m" + s[pos] + "\033[31m]\033[0m" +
+              s[pos + 1:min(pos + context, len(s))])
+        t = ""
+        while t not in ("<", ">", "s", "d"):
+            t = input("[<,>,s,d,?] :")
+            if t == "?":
+                print("<:opening single, >:closing single, s:skip, d:dialect")
+        if t == "<":
+            s = s[:pos] + "\u2018" + s[pos + 1:]
+        elif t == ">":
+            s = s[:pos] + "\u2019" + s[pos + 1:]
+        elif t == "d":
+            s = s[:pos] + "\u02bc" + s[pos + 1:]
+            #record dialect word
+            e = re.search(r"\w+$", s[:pos])
+            m = re.search(r"^\w+", s[pos + 1:])
+            dialect_word_start = e.group(0) if e else ""
+            dialect_word_end = m.group(0) if m else ""
+            dialect[dialect_word_start + "'" + dialect_word_end] = (
+                dialect_word_start + u"\u02bc" + dialect_word_end)
+        print()
+        start = pos + 1
+
+
+
+def replace_dialect(p, dialect):
+    for k in dialect:
+        p = re.sub("(^|\\W)%s($|\\W)" % k, "\\1%s\\2" % dialect[k], p)
+    return p
 
 
 def process_singles(p, dialect):
     """Process a paragraph to curl single quotes. It is assumed that apostrophes and
     double quotes are already curled before calling this function."""
-    skip = set()
     re_close = re.compile("'([\\s\u201d.,;:!]|$)")
-    while True:
-        #replace any dialect
-        for k in dialect:
-            p = re.sub("(^|\\W)%s($|\\W)" % k, "\\1%s\\2" % dialect[k], p)
-        #single followed by space, \u201d etc. or end of line is likely a closing single
-        #(although it may be an apostrophe)
-        p = re_close.sub('\u2019\\1', p)
-        #break the para into sections on closing single quotes.
-        sections = p.split("\u2019")
-        for c, s in enumerate(sections[:-1]):
-            #if there is already an opening single (previously determined
-            #interactively) in the section, it is likely that the
-            #quote was indeed a closing single
-            if s.find("\u2018") != -1:
-                sections[c] += "\u2019"
-                continue
-            #assume all remaining quotes in the section are candidates
-            #for being a matching opener
-            candidate_openers = sections[c].count("'")
-            #if we only find one candidate, assume it is an opening quote and we've
-            #correctly split on a closing quote
-            if candidate_openers == 1:
-                sections[c] = s.replace("'", "\u2018")
-                sections[c] += "\u2019"
-            #if there is no candidate opening quote, we've likely mistaken an apostrophe
-            #for a closing quote - put the ' back to trigger query
-            elif candidate_openers == 0:
-                sections[c] += "'"
+    p = replace_dialect(p, dialect)
+    #single followed by space, \u201d etc. or end of line is likely a closing single
+    #(although it may turn out to be an apostrophe)
+    p = re_close.sub('\u2019\\1', p)
+    #break the para into sections on these closing single quotes.
+    sections = p.split("\u2019")
+    pos = 0
+    for s in sections[:-1]:
+        #any remaining quotes in section are candidates for being openers -- anything
+        #inside or at the end a word should already have been turned into an apostrophe
+        candidate_openers = s.count("'")
+        #if we only find one candidate, assume it is the paired opening quote and hence we've
+        #correctly split on a closing quote
+        if candidate_openers == 1:
+            s = s.replace("'", "\u2018")
+            s += "\u2019"
+            p = p[:pos] + s + p[pos + len(s):]
+        #if there is no candidate opening quote, we've likely mistaken an apostrophe
+        #for a closing quote - put the straight quote back to trigger query
+        else:
+            if candidate_openers == 0:
+                s += "'"
             else:
-            #if we have more than one opening quote, one of them is probably an apostrophe.
-            #Assume that we were correct in the original diagnosis of a closing single, but leave
-            #the candidates unchanged
-                sections[c] += "\u2019"
-        p = "".join(sections)
-        r = query_single(p, dialect, skip)
-        if r == None: break
-        else: p = r
+                #if we have more than one candidate opening quote, one of them is probably an
+                #apostrophe.  Assume that we were correct in the original diagnosis of a closing
+                #single, but leave the candidates unchanged
+                s += "\u2019"
+            #splice s back into p and hand it off for interactive query
+            p = p[:pos] + s + p[pos + len(s):]
+            p = query_single(p, pos, pos + len(s), dialect)
+        pos += len(s)
+    #anything in last section needs querying
+    p = query_single(p, pos, pos + len(sections[-1]), dialect)
     return p
 
 
@@ -115,6 +114,8 @@ def process_para(p, dialect, strict):
     if strict:
         p = re.sub(r"(\w)'", "\\1\u02bc", p)
     else: #if not strict, ' in middle of work or xxxs' os an apostrophe
+        p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
+        #do it a second time to catch overlapping cases
         p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
         p = re.sub(r"s'", "s\u02bc", p)
     #do optimistic processing
