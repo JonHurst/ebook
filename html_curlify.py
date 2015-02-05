@@ -7,6 +7,8 @@ import re
 import shutil
 import argparse
 import os
+import tty
+import termios
 
 #note unicode escapes:
 #\u2018 is left single quote ‘
@@ -32,33 +34,43 @@ def process_doubles(p):
 
 def query_single(s, start, end, dialect):
     context = 200#change this to show more or less context for query
-    while True:
-        s = replace_dialect(s, dialect)
-        pos = s.find("'", start, end)
-        if pos == -1: return s
-        print(s[max(pos - context, 0):pos] +
-              "\033[31m[\033[0m" + s[pos] + "\033[31m]\033[0m" +
-              s[pos + 1:min(pos + context, len(s))])
-        t = ""
-        while t not in ("<", ">", "s", "d"):
-            t = input("[<,>,s,d,?] :")
-            if t == "?":
-                print("<:opening single, >:closing single, s:skip, d:dialect")
-        if t == "<":
-            s = s[:pos] + "\u2018" + s[pos + 1:]
-        elif t == ">":
-            s = s[:pos] + "\u2019" + s[pos + 1:]
-        elif t == "d":
-            s = s[:pos] + "\u02bc" + s[pos + 1:]
-            #record dialect word
-            e = re.search(r"\w+$", s[:pos])
-            m = re.search(r"^\w+", s[pos + 1:])
-            dialect_word_start = e.group(0) if e else ""
-            dialect_word_end = m.group(0) if m else ""
-            dialect[dialect_word_start + "'" + dialect_word_end] = (
-                dialect_word_start + u"\u02bc" + dialect_word_end)
-        print()
-        start = pos + 1
+    old_settings = termios.tcgetattr(sys.stdin)
+    try:
+        tty.setcbreak(sys.stdin)
+        while True:
+            s = replace_dialect(s, dialect)
+            pos = s.find("'", start, end)
+            if pos == -1: return s
+            t = ""
+            while t not in ("<", ">", "m", "d", ",", "."):
+                print(s[max(pos - context, 0):pos] +
+                      "\033[31m[\033[0m" + s[pos] + "\033[31m]\033[0m" +
+                      s[pos + 1:min(pos + context, len(s))])
+                sys.stdout.write("[<,>,m,d,?] : ")
+                sys.stdout.flush()
+                t = sys.stdin.read(1)
+                if t == ",": t = "<"
+                if t == ".": t = ">"
+                sys.stdout.write(t + "\n")
+                if t == "?":
+                    print("\n<:opening single   >:closing single/apostrophe   m:mark   d:dialect\n")
+            if t == "<":
+                s = s[:pos] + "\u2018" + s[pos + 1:]
+            elif t == ">":
+                s = s[:pos] + "\u2019" + s[pos + 1:]
+            elif t == "d":
+                s = s[:pos] + "\u02bc" + s[pos + 1:]
+                #record dialect word
+                e = re.search(r"\w+$", s[:pos])
+                m = re.search(r"^\w+", s[pos + 1:])
+                dialect_word_start = e.group(0) if e else ""
+                dialect_word_end = m.group(0) if m else ""
+                dialect[dialect_word_start + "'" + dialect_word_end] = (
+                    dialect_word_start + u"\u02bc" + dialect_word_end)
+            print()
+            start = pos + 1
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
 
 
