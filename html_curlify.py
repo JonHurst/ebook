@@ -257,22 +257,18 @@ def main():
     #mark remaining straight quotes and replace apostrophes with right singles,
     #sort out dashes and ellipses
     rmap = (
-        ['"', '{"}', 0],
-        ["'", "{'}", 0],
-        ["\u02bc", "\u2019", 0],
-        [" . . . .", "….", 0],
-        [" . . . ", " … ", 0],
-        ["....", "….", 0],
-        [" ... ", " … ", 0],
-        ["… ”", "…”", 0],
-        ["… ’", "…’", 0],
-        ["----", "&dmdash;", 0],
-        ["——", "&dmdash;", 0],
-        ["--", " – ", 0],
-        ["—", " – ", 0],
-        ["&dmdash;", "——", 0],
-        [" – ”", " –”", 0],
-        [" – ’", " –’", 0]
+        #mark remaining straight quotes and replace apostrophes with right singles
+        ['"', '{"}', 0], ["'", "{'}", 0], ["\u02bc", "\u2019"],
+        #sort out ellipses
+        [" . . . .", "…."], [" . . . ", " … "],
+        ["....", "…."], [" ... ", " … "],
+        ["… ”", "…”"], ["… ’", "…’"],
+        #sort out dashes
+        ["----", "&dmdash;"], ["——", "&dmdash;"],
+        ["--", "—"],
+        ["—”", " –”"], ["—’", " –’"],
+        ["“—", "“– "], ["‘—", "‘– "],
+        ["—", " – "], ["&dmdash;", "——"]
     )
     replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
     #output file
