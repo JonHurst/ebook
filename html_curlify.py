@@ -175,16 +175,13 @@ def fix_entities(text):
 
 
 def replace_text(e, rep_map):
-    if e.text:
+    for se in e.iter():
         for r in rep_map:
-            r[2] += e.text.count(r[0])
-            e.text = e.text.replace(r[0], r[1])
-    for se in e:
-        if se.tail:
-            for r in rep_map:
+            if len(r) == 3:
+                r[2] += se.text.count(r[0])
                 r[2] += se.tail.count(r[0])
-                se.tail = se.tail.replace(r[0],r[1])
-        replace_text(se, rep_map)
+            se.text = se.text.replace(r[0], r[1])
+            se.tail = se.tail.replace(r[0], r[1])
 
 
 def quote_balance_check(el):
