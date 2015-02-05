@@ -254,8 +254,6 @@ def main():
         curlify_element(se, dialect, strict)
         if strict:
             quote_balance_check(se)
-    #mark remaining straight quotes and replace apostrophes with right singles,
-    #sort out dashes and ellipses
     rmap = (
         #mark remaining straight quotes and replace apostrophes with right singles
         ['"', '{"}', 0], ["'", "{'}", 0], ["\u02bc", "\u2019"],
