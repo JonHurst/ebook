@@ -201,8 +201,7 @@ def quote_balance_check(el):
             break
 
 
-def main():
-    #parse arguments
+def parse_command_line():
     parser = argparse.ArgumentParser(
         description=("Process an xhtml file containing straight quotes into "
                      "one containing curly quotes. Old file copied with .old suffix."))
@@ -216,11 +215,10 @@ def main():
     if not os.path.isfile(args["filename"]):
         print("Error: ", args["filename"], "is not a file")
         sys.exit(-1)
-    et.register_namespace("", "http://www.w3.org/1999/xhtml")
-    text = open(args["filename"], encoding="utf-8").read()
-    text = fix_entities(text)
-    #process the tree
-    tree = et.XML(text)
+    return args
+
+
+def build_block_list(tree, args):
     blocks = []
     for tag in ("p", "h1", "h2", "h3"):
         blocks.extend(tree.findall(".//{http://www.w3.org/1999/xhtml}" + tag))
@@ -236,6 +234,18 @@ def main():
                 c = e.attrib.get("class", "")
                 if (c.find(s[1]) != -1):
                     blocks.append(e)
+    return blocks
+
+
+def main():
+    et.register_namespace("", "http://www.w3.org/1999/xhtml")
+    args = parse_command_line()
+    text = open(args["filename"], encoding="utf-8").read()
+    text = fix_entities(text)
+    #process the tree into a list of blocks to process
+    tree = et.XML(text)
+    blocks = build_block_list(tree, args)
+    #process the blocks
     dialect = {}
     ble = len(blocks)
     strict = args["strict"] or False
