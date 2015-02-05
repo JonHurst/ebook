@@ -122,13 +122,10 @@ def process_singles(p, dialect):
 
 def process_para(p, dialect, strict):
     #replace suspected apostrophes with \u02bc
-    #if strict single preceded by a word characters is a suspected apostrophe
-    if strict:
-        p = re.sub(r"(\w)'", "\\1\u02bc", p)
-    else: #if not strict, ' in middle of work or xxxs' os an apostrophe
-        p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
-        #do it a second time to catch overlapping cases
-        p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
+    #intraword replacement - do it a twice to catch overlapping cases
+    for i in range(2): p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
+    if not strict:
+        #if we're not being strict, assume ' after an s is an apostrophe
         p = re.sub(r"s'", "s\u02bc", p)
     #do optimistic processing
     p = process_doubles(p)
