@@ -142,6 +142,7 @@ def backup_file(f):
     shutil.copyfile(f, bf)
 
 
+def parse_command_line():
     #parse arguments
     parser = argparse.ArgumentParser(description="""\
 Seperate "bog standard paragraphs" to expose HTML skeleton.""")
@@ -161,9 +162,12 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
                         help="XML Input file")
     parser.add_argument("-e", "--strip_empty", action="store_true",
                         help="Strip out bsps with no content")
-    args = vars(parser.parse_args())
-    #process
+    return vars(parser.parse_args())
+
+
+def main():
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
+    args = parse_command_line()
     root = ET.parse(args["input"])
     head = root.find(".//{http://www.w3.org/1999/xhtml}head")
     body = root.find(".//{http://www.w3.org/1999/xhtml}body")
