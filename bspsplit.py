@@ -5,6 +5,8 @@ import subprocess
 import xml.etree.ElementTree as ET
 import argparse
 import collections
+import copy
+
 
 bsp_template = """\
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -50,23 +52,30 @@ def make_bog_standard_para_p(args, fail_list):
     if args["span_class"]:
         allowable_span_classes.extend(args["span_class"])
     def empty_p(e):
-        if e.text and len(e.text.strip()): return False
+        if e.text and len(e.text.replace(" ", "x").strip()): return False
         for se in e:
-            if se.tail and len(se.tail.strip()): return False
+            if se.tail and len(se.tail.replace(" ", "x").strip()): return False
             if empty_p(se) == False: return False
         return True
     def bog_standard_para_p(e):
-        if (e.tag != "{http://www.w3.org/1999/xhtml}p" or
-            (e.get("class") and e.get("class") not in allowable_para_classes) or
-            e.get("style") or empty_p(e)):
-            fail_list.append(e)
+        if e.tag != "{http://www.w3.org/1999/xhtml}p":
+            fail_list.append((e, "not_para"))
+            return False
+        if e.get("class") and e.get("class") not in allowable_para_classes:
+            fail_list.append((e, "class"))
+            return False
+        if e.get("style"):
+            fail_list.append((e, "style"))
+            return False
+        if empty_p(e):
+            fail_list.append((e, "empty"))
             return False
         for c in list(e):
             for se in c.iter():
                 if (se.tag not in allowable_tags and not
                     (se.tag == "{http://www.w3.org/1999/xhtml}span" and
                      se.get("class") in allowable_span_classes)):
-                    fail_list.append(se)
+                    fail_list.append((se, "subelement"))
                     return False
         return True
     return bog_standard_para_p
@@ -74,20 +83,15 @@ def make_bog_standard_para_p(args, fail_list):
 
 def process_bsps(r, bog_standard_para_p):
     bsp_elements = []
-    nonbsp_elements = []
-    def recursive_process(e):
-        for c, se in enumerate(list(e)):
-            if bog_standard_para_p(se):
-                bsp_elements.append(se)
-                ref = "bsp" + str(len(bsp_elements) - 1)
-                ph = ET.Element("{http://www.w3.org/1999/xhtml}div",
-                                {"id": ref, "class": "bsp_ph"})
-                ph.tail = se.tail
-                e.insert(c, ph)
-                e.remove(se)
-            else:
-                recursive_process(se)
-    recursive_process(r)
+    for e in r.findall(".//{http://www.w3.org/1999/xhtml}p"):
+        if bog_standard_para_p(e):
+            e_copy = copy.deepcopy(e)
+            bsp_elements.append(e_copy)
+            ref = "bsp" + str(len(bsp_elements) - 1)
+            e.clear()
+            e.tag = "{http://www.w3.org/1999/xhtml}div"
+            e.attrib = {"id": ref, "class": "bsp_ph"}
+            e.tail = e_copy.tail
     return bsp_elements
 
 
@@ -114,6 +118,18 @@ def collapse_placeholders(r):
     recursive_process(r)
 
 
+def remove_subelements(e, e_list):
+    parents = {}
+    def recursive_map_parents(e):
+        for se in e:
+            parents[se] = e
+            recursive_map_parents(se)
+    recursive_map_parents(e)
+    for el in e_list:
+        # print("Removing:", ET.tostring(el, encoding="unicode"))
+        parents[el].remove(el)
+
+
 def main():
     #parse arguments
     parser = argparse.ArgumentParser(description="""\
@@ -132,6 +148,8 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
                         help="Insert a title page block at the top of the skeleton")
     parser.add_argument("input", nargs="?", default="decruft.xhtml",
                         help="XML Input file")
+    parser.add_argument("-e", "--strip_empty", action="store_true",
+                        help="Strip out bsps with no content")
     args = vars(parser.parse_args())
     #process
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
@@ -153,8 +171,19 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
     fail = []
     bog_standard_para_p = make_bog_standard_para_p(args, fail)
     bsp_el = process_bsps(body, bog_standard_para_p)
-    collapse_placeholders(body)
     #write out modified xhtml
+    empty_elements = set()
+    if args.get("strip_empty"):
+        new_fail = []
+        empty_list = []
+        for X in fail:
+            if X[1] == "empty":
+                empty_list.append(X[0])
+            else:
+                new_fail.append(X)
+        fail = new_fail
+        remove_subelements(body, empty_list)
+    collapse_placeholders(body)
     root.write(args["skeleton"],
                encoding="unicode",
                xml_declaration=True)
@@ -172,12 +201,13 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
                                    encoding="unicode",
                                    xml_declaration=True)
     #report on nonbsp elements
-    e = collections.Counter([(X.tag, X.get("class", ""), X.get("style", "")) for X in fail])
+    e = collections.Counter([(X[0].tag, X[0].get("class", ""), X[0].get("style", ""), X[1]) for X in fail])
     print("Skeleton now contains:")
     for p, n in e.most_common():
         s = p[0].replace("{http://www.w3.org/1999/xhtml}", "")
         if p[1]: s += " class=\"" + p[1] + "\""
         if p[2]: s += " style=\"" + p[2] + "\""
+        s += " : " + p[3]
         print(" ", n, ":", s)
 
 
