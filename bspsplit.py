@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 import argparse
 import collections
 import copy
+import os
+import shutil
 
 
 bsp_template = """\
@@ -130,7 +132,15 @@ def remove_subelements(e, e_list):
         parents[el].remove(el)
 
 
-def main():
+def backup_file(f):
+    if not os.path.exists(f): return
+    c, bf = 0, f + ".old"
+    while os.path.exists(bf):
+        c += 1
+        bf = f + ".old(%s)" % c
+    shutil.copyfile(f, bf)
+
+
     #parse arguments
     parser = argparse.ArgumentParser(description="""\
 Seperate "bog standard paragraphs" to expose HTML skeleton.""")
@@ -184,6 +194,7 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
         fail = new_fail
         remove_subelements(body, empty_list)
     collapse_placeholders(body)
+    backup_file(args["skeleton"])
     root.write(args["skeleton"],
                encoding="unicode",
                xml_declaration=True)
@@ -197,6 +208,7 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
         bsp.append(el)
         bsp.tail = "\n"
         bsp_body.append(bsp)
+    backup_file(args["bsps"])
     ET.ElementTree(bsp_root).write(args["bsps"],
                                    encoding="unicode",
                                    xml_declaration=True)
