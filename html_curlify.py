@@ -271,7 +271,6 @@ def main():
     replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
     #output file
     c, backup_filename = 0, args["filename"] + ".old"
-    print(backup_filename)
     while os.path.exists(backup_filename):
         c += 1
         backup_filename = args["filename"] + ".old(%s)" % c
