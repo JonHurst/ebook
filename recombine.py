@@ -10,7 +10,7 @@ def process_bsps(r, bsp_dict):
         for c, se in enumerate(list(e)):
             if (se.tag == "{http://www.w3.org/1999/xhtml}div" and
                 se.attrib.get("class") == "bsp_block"):
-                bsps = se.text.split("…")
+                bsps = se.text.strip().split("…")
                 if len(bsps) == 2:
                     #generate bsp list
                     bsp_start_i = int(bsps[0][3:]) + 1
