@@ -253,7 +253,6 @@ def fix_dialect_errors(blocks, dialect):
 def main():
     et.register_namespace("", "http://www.w3.org/1999/xhtml")
     args = parse_command_line()
-    print(args)
     text = open(args["filename"], encoding="utf-8").read()
     text = fix_entities(text)
     #process the tree into a list of blocks to process
