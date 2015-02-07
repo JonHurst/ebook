@@ -93,7 +93,8 @@ def process_singles(p, dialect):
     pos = 0
     for s in sections[:-1]:
         #any remaining quotes in section are candidates for being openers -- anything
-        #inside or at the end a word should already have been turned into an apostrophe
+        #inside or at the end a word should already have been turned into an apostrophe and
+        #known dialect will already have been replaced
         candidate_openers = s.count("'")
         #if we only find one candidate, assume it is the paired opening quote and hence we've
         #correctly split on a closing quote
@@ -127,7 +128,7 @@ def process_para(p, dialect, strict):
     if not strict:
         #if we're not being strict, assume ' after an s is an apostrophe
         p = re.sub(r"s'", "s\u02bc", p)
-    #do optimistic processing
+    #do processing
     p = process_doubles(p)
     p = process_singles(p, dialect)
     return p
@@ -237,6 +238,18 @@ def build_block_list(tree, args):
     return blocks
 
 
+def fix_dialect_errors(blocks, dialect):
+    for b in blocks:
+        for e in b.iter():
+            for k in dialect:
+                if k[0] != "'": continue
+                dialect_error = "\u2018" + k[1:]
+                e.text = re.sub("(^|\\W)%s($|\\W)" % dialect_error,
+                                "\\1%s\\2" % dialect[k], e.text)
+                e.tail = re.sub("(^|\\W)%s($|\\W)" % dialect_error,
+                                "\\1%s\\2" % dialect[k], e.tail)
+
+
 def main():
     et.register_namespace("", "http://www.w3.org/1999/xhtml")
     args = parse_command_line()
@@ -254,6 +267,8 @@ def main():
         curlify_element(se, dialect, strict)
         if strict:
             quote_balance_check(se)
+    #one more round of dialect replacement to catch fixable errors
+    fix_dialect_errors(blocks, dialect)
     rmap = (
         #mark remaining straight quotes and replace apostrophes with right singles
         ['"', '{"}', 0], ["'", "{'}", 0], ["\u02bc", "\u2019"],
