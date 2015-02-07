@@ -121,20 +121,18 @@ def process_singles(p, dialect):
     return p
 
 
-def process_para(p, dialect, strict):
+def process_para(p, dialect):
     #replace suspected apostrophes with \u02bc
     #intraword replacement - do it a twice to catch overlapping cases
     for i in range(2): p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
-    if not strict:
-        #if we're not being strict, assume ' after an s is an apostrophe
-        p = re.sub(r"s'", "s\u02bc", p)
+    p = re.sub(r"s'", "s\u02bc", p)
     #do processing
     p = process_doubles(p)
     p = process_singles(p, dialect)
     return p
 
 
-def curlify_element(e, dialect, strict):
+def curlify_element(e, dialect, skip_quote_count=False):
     #Text in element looks like e.g.:
     #el_text<se>se_text<sse>sse_text</sse>sse_tail</se>se_tail<se>se_text</se>se_tail
     #where <se> and <sse> represent the positions of sub(sub)-elements and don't contribute
@@ -148,7 +146,9 @@ def curlify_element(e, dialect, strict):
     flatten_text(e)
     text = "".join(text_blocks[:-1])
     if not text: return
-    text = process_para(text, dialect, strict)
+    text = process_para(text, dialect)
+    if not skip_quote_count:
+        text = quote_balance_check(text)
     #we now have a processed text string and need to fit the modified version back into
     #the tree.
     text += text_blocks[-1]
@@ -185,29 +185,29 @@ def replace_text(e, rep_map):
             if se.tail: se.tail = se.tail.replace(r[0], r[1])
 
 
-def quote_balance_check(el):
-    """Checks double quotes are balanced excluding sub-element text, and
-    allowing for opening quote on muliple paragraphs without closing"""
-    for se in el: quote_balance_check(se) #apply recursively
-    qb_text = el.text or ""
-    for se in el:
-        qb_text += se.tail or ""
-    #do double quote balance checking, resetting to straight in failure cases
-    quote_counter = 0
-    for c in qb_text:
-        if c == "“": quote_counter += 1
-        elif c == "”": quote_counter -= 1
-        if quote_counter not in (0, 1):
-            replace_text(el, (["“", '"', 0], ["”", '"', 0]))
-            break
+def quote_balance_check(qb_text):
+    """Checks double quotes are balanced, allowing for one extra opening
+    double at start of paragraph. If there is an uncurled double in the text,
+    it will not process it."""
+    if len(qb_text) and qb_text.find('"') == -1:
+        quote_counter = 0
+        for c in qb_text:
+            if c == "“": quote_counter += 1
+            elif c == "”": quote_counter -= 1
+            if quote_counter < 0 or quote_counter > 1: break
+        if quote_counter == 1 and qb_text[0] == "“":
+            quote_counter -= 1
+        if quote_counter != 0:
+            return qb_text.replace("“", '"').replace("”", '"')
+    return qb_text
 
 
 def parse_command_line():
     parser = argparse.ArgumentParser(
         description=("Process an xhtml file containing straight quotes into "
                      "one containing curly quotes. Old file copied with .old suffix."))
-    parser.add_argument("-s", "--strict", action="store_true",
-                        help="Apply stricter checking of generated quotes")
+    parser.add_argument("--skip-quote-count", action="store_true",
+                        help="Don't run quote counting check.")
     parser.add_argument("-i", "--include", action="append",
                         help="Include additional block with form tag[.class] (e.g. div or div.poem)")
     parser.add_argument("filename", nargs="?", default="bsps.xhtml",
@@ -253,6 +253,7 @@ def fix_dialect_errors(blocks, dialect):
 def main():
     et.register_namespace("", "http://www.w3.org/1999/xhtml")
     args = parse_command_line()
+    print(args)
     text = open(args["filename"], encoding="utf-8").read()
     text = fix_entities(text)
     #process the tree into a list of blocks to process
@@ -261,12 +262,9 @@ def main():
     #process the blocks
     dialect = {}
     ble = len(blocks)
-    strict = args["strict"] or False
     for c, se in enumerate(blocks):
         print(c + 1, "of", ble)
-        curlify_element(se, dialect, strict)
-        if strict:
-            quote_balance_check(se)
+        curlify_element(se, dialect, args.get("skip_quote_count"))
     #one more round of dialect replacement to catch fixable errors
     fix_dialect_errors(blocks, dialect)
     rmap = (
