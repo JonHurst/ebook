@@ -99,8 +99,11 @@ def process_bsps(r, bog_standard_para_p):
 
 
 def collapse_placeholders(r):
+    count = 0
     def collapse(e, ph):
+        nonlocal count
         if len(ph) == 0: return
+        count += 1
         if len(ph) > 1:
             ph[0].text = ph[0].get("id") + "…" + ph[-1].get("id")
         else:
@@ -119,6 +122,7 @@ def collapse_placeholders(r):
                 recursive_process(se)
         collapse(e, ph)
     recursive_process(r)
+    return count
 
 
 def remove_subelements(e, e_list):
@@ -198,7 +202,7 @@ def main():
                 new_fail.append(X)
         fail = new_fail
         remove_subelements(body, empty_list)
-    collapse_placeholders(body)
+    c_count = collapse_placeholders(body)
     backup_file(args["skeleton"])
     root.write(args["skeleton"],
                encoding="unicode",
@@ -217,9 +221,10 @@ def main():
     ET.ElementTree(bsp_root).write(args["bsps"],
                                    encoding="unicode",
                                    xml_declaration=True)
-    #report on nonbsp elements
+    #report
+    print("Extracted %s bsps into %s bsp blocks" % (len(bsp_el), c_count))
     e = collections.Counter([(X[0].tag, X[0].get("class", ""), X[0].get("style", ""), X[1]) for X in fail])
-    print("Skeleton now contains:")
+    print("The following remain in the skeleton:")
     for p, n in e.most_common():
         s = p[0].replace("{http://www.w3.org/1999/xhtml}", "")
         if p[1]: s += " class=\"" + p[1] + "\""
