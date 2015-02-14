@@ -15,7 +15,7 @@ def main():
     parser.add_argument("from",
                         help="tagname or tagname.class to convert from (e.g. 'div' or 'div.para').")
     parser.add_argument("to",
-                        help="tagname or tagname.class to convert to (e.g. 'p' or 'p.noindent'.")
+                        help="tagname or tagname.class to convert to (e.g. 'p' or 'p.noindent' or ''.")
     parser.add_argument("input",
                         help="Input file (xhtml format)")
     args = vars(parser.parse_args())
@@ -31,8 +31,10 @@ def main():
         xpath = ".//{http://www.w3.org/1999/xhtml}%s[@class='%s']" % tuple(i)
     else:
         xpath = ".//{http://www.w3.org/1999/xhtml}%s" % i[0]
+    tag = None
+    if o[0] != '': tag = "{http://www.w3.org/1999/xhtml}" + o[0]
     for e in itree.findall(xpath):
-        e.tag = "{http://www.w3.org/1999/xhtml}" + o[0]
+        e.tag = tag
         del e.attrib["class"]
         if len(o) == 2:
             e.set("class", o[1])
