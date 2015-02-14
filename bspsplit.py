@@ -31,14 +31,6 @@ skeleton_headers = """\
 </skel-headers>
 """
 
-title_page_template = """\
-<div id="title_page" xmlns="http://www.w3.org/1999/xhtml">
-  <h1><span class="title">title</span><br/>
-  <span style="font-size:medium;">by</span><br/>
-  <span class="author">author</span></h1>
-</div>
-"""
-
 
 def make_bog_standard_para_p(args, fail_list):
     allowable_para_classes = []
@@ -160,8 +152,6 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
                         help="Name of 'skeleton' output file")
     parser.add_argument("-b", "--bsps", default="bsps.xhtml",
                         help="Name of 'bog standard paragraphs' output file")
-    parser.add_argument("-a", "--add_title", action="store_true",
-                        help="Insert a title page block at the top of the skeleton")
     parser.add_argument("input", nargs="?", default="decruft.xhtml",
                         help="XML Input file")
     parser.add_argument("-e", "--strip_empty", action="store_true",
@@ -180,12 +170,6 @@ def main():
     skel_headers[-1].tail = head[-1].tail
     head[-1].tail = "\n\n"
     head.extend(skel_headers)
-    #add title page
-    if args.get("add_title"):
-        title_page = ET.XML(title_page_template)
-        title_page.tail = body.text
-        body.text = "\n\n"
-        body.insert(0, title_page)
     #split out bog standard paragraphs
     fail = []
     bog_standard_para_p = make_bog_standard_para_p(args, fail)

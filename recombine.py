@@ -4,6 +4,15 @@ import xml.etree.ElementTree as ET
 import sys
 
 
+title_page_template = """\
+<div id="title_page" xmlns="http://www.w3.org/1999/xhtml">
+  <h1><span class="title">%s</span><br/>
+  <span style="font-size:medium;">by</span><br/>
+  <span class="author">%s</span></h1>
+</div>
+"""
+
+
 def process_bsps(r, bsp_dict):
     out = ET.Element(r.tag, r.attrib)
     def recursive_process(e, cur):
@@ -41,6 +50,13 @@ def main():
     head = main_tree.find("./{http://www.w3.org/1999/xhtml}head")
     for r in removeids:
         head.remove(r)
+    title = head.find("{http://www.w3.org/1999/xhtml}title").text
+    author_tag = (head.find("{http://www.w3.org/1999/xhtml}meta[@name='author']") or
+                  head.find("{http://www.w3.org/1999/xhtml}meta[@name='author']"))
+    author = author_tag.attrib.get("content")
+    title_page = ET.XML(title_page_template % (title, author))
+    body = main_tree.find("./{http://www.w3.org/1999/xhtml}body")
+    body.insert(0, title_page)
     bsp_tree = ET.parse(sys.argv[2])
     bsp_dict = {}
     for e in bsp_tree.iter("{http://www.w3.org/1999/xhtml}div"):
