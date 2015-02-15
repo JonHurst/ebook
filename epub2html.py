@@ -151,6 +151,9 @@ def output_group_file(spine_group, input_dir, output_dir, prefix_map):
     #output file
     output_filename = os.path.join(output_dir, spine_group[0][1])
     print("Writing", output_filename)
+    dest_directory = os.path.dirname(output_filename)
+    if dest_directory and not os.path.isdir(dest_directory):
+        os.makedirs(dest_directory)
     ET.ElementTree(first_file).write(
         output_filename,
         encoding="unicode",
