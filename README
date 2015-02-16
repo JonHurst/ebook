@@ -1,0 +1,79 @@
+This is a set of tools that can be used to help transform an epub into a
+quality PDF suitably sized and formatted for an ereader.
+
+epub2html.py
+============
+This is generally used first to unpack an epub and concatenate any xhtml
+files that are adjacent in the spine and have the same header section
+(title may be different). In most cases, the epub has been generated
+from a single xhtml file that has been broken up, so this process
+more or less recovers the xhtml file that was originally used.
+
+bspsplit.py
+===========
+To make working with the xhtml file more manageable, this tool splits
+the file into a skeleton and a file containing just "bog standard
+paragraphs" (BSPs). The concept is that BSPs will reliably and
+predictable render, so anything that is complex and needs attention will
+be left in the skeleton. This tool takes a number of command line flags
+that allow the definition of what constitutes a BSP to be expanded as
+appropriate.
+
+dotidy.sh
+=========
+It is sometimes the case that the skeleton is such a mess that it is
+hard to work on. In this case, this script runs 'tidy' with appropriate
+settings to make a more useable file.
+
+replace_tag.py
+==============
+It is often the case that the original creator has introduced unwanted
+tagging or used strange tags. This program allows tags to be modified or
+deleted, and will ask whether to delete content within tags if it finds
+it.
+
+inventory.py
+============
+It is often useful to get a quick overview of what tags are left in the
+skeleton and what tags have been allowed into the BSPs. This tool
+generates such a list.
+
+html_curlify.py
+===============
+This tool is used to prettify the punctuation within a file. It only
+works on <p> to avoid messing up complex sections. It primarily is used
+to replace straight quotes with their correct directional
+counterpart. Dialect makes this process much more difficult (it is hard
+to know whether a single straight quote at the start of a word is an
+apostrophe or an opening quote), so it requires some interaction.
+
+The tool also attempts to sort out dashes and ellipses
+appropriately. This has been added to the curling functionality, and
+should propably result in a change of name at some point.
+
+haines_poem.py
+==============
+Some creators attempt to represent poetry by using paragraphs to
+represent stanzas, <br/> tags to represent lines and groups of
+non-breaking spaces to represent indentation. This is not very optimal,
+and is hard to convert to a more sensible representation. This tool
+attempts to do this job. Note that it is not that common, so this tool
+is not very mature.
+
+recombine.py
+============
+Once the skeleton and BSPs have been worked into a suitable state, they
+need to be recombined. This is what this tool does.
+
+make-ebook.sh
+=============
+This script calls PrinceXML to create the final ebook. It is also useful
+to use it on the skeleton file to quickly see how complexities
+render. It mainly relies on the css files in the include directory.
+
+include
+=======
+This directory includes the css for PrinceXML and scripts and
+stylesheets to make working with the skeleton easier. If the directory
+is symlinked in the same directory as the skeleton file, it becomes
+possible to click on a BSP block marker to see what is in the BSP.
