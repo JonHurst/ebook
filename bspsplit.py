@@ -46,7 +46,7 @@ def make_bog_standard_para_p(args, fail_list):
     if args["span_class"]:
         allowable_span_classes.extend(args["span_class"])
     def empty_p(e):
-        if e.find("{http://www.w3.org/1999/xhtml}br"): return False
+        if not e.find(".//{http://www.w3.org/1999/xhtml}br") is None: return False
         if e.text and len(e.text.replace(" ", "x").strip()): return False
         for se in e:
             if se.tail and len(se.tail.replace(" ", "x").strip()): return False
