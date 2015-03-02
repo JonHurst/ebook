@@ -123,9 +123,11 @@ def process_singles(p, dialect):
 
 
 def process_para(p, dialect):
-    #replace any previously existing curled quotes with straight quotes
-    p = re.sub(r"[‘’]" , "'", p)
-    p = re.sub(r"[“”]" , '"', p)
+    #deal with previously existing curled quotes -- assume they may be incorrect
+    p = re.sub(r"’(\w)", "\u02bc\\1", p)
+    p = re.sub(r"(‘\s*)|(\s*’)" , "'", p)
+    p = re.sub(r"(“\s*)|(\s*”)" , '"', p)
+    p = re.sub(r"\{(['\"])\}", "\\1", p)
     #replace suspected apostrophes with \u02bc
     #intraword replacement - do it a twice to catch overlapping cases
     for i in range(2): p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
@@ -181,12 +183,14 @@ def fix_entities(text):
 
 def replace_text(e, rep_map):
     for se in e.iter():
+        c_text, c_tail = 0, 0
         for r in rep_map:
+            if se.text: se.text, c_text = re.subn(r[0], r[1], se.text)
+            if se.tail: se.tail, c_tail = re.subn(r[0], r[1], se.tail)
             if len(r) == 3:
+                r[2] += c_text + c_tail
                 if se.text: r[2] += se.text.count(r[0])
                 if se.tail: r[2] += se.tail.count(r[0])
-            if se.text: se.text = se.text.replace(r[0], r[1])
-            if se.tail: se.tail = se.tail.replace(r[0], r[1])
 
 
 def quote_balance_check(qb_text):
@@ -288,22 +292,21 @@ def main():
     if not args.get("skip_ellipses"):
         print("Fixing ellipses")
         rmap = (
-            [" . . . .", "…."], [" . . . ", " … "],
-            ["....", "…."], [" ... ", " … "],
-            ["… ”", "…”"], ["… ’", "…’"]
+            [r"\s?\.\s?\.\s?\.\s?\.", "…."],
+            [r"\.\s?\.\s?\.", "…"],
+            [r"…\s+([”’])", "… \\1"]
         )
         replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
     if not args.get("skip_dashes"):
         print("Fixing dashes")
         rmap = (
-            ["----", "&dmdash;"], ["——", "&dmdash;"],
+            ["(----)|(——)", "&dmdash;"],
             ["--", "—"],
-            ["—”", " –”"], ["—’", " –’"],
-            ["“—", "“– "], ["‘—", "‘– "],
-            ["—", " – "], ["&dmdash;", "——"]
+            ["—", " – "], [r"– (\w)", "– \\1"],
+            ["([“‘])–", "\\1 –"], ["–([”’])", "– \\1"],
+            ["&dmdash;", "——"]
         )
         replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
-
     #output file
     c, backup_filename = 0, args["filename"] + ".old"
     while os.path.exists(backup_filename):
