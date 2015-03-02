@@ -29,7 +29,7 @@ def replace_poem(e):
     s = ET.SubElement(e, "{http://www.w3.org/1999/xhtml}div", {"class": "stanza"})
     s.text = "\n"
     curr_el = ET.SubElement(s, "{http://www.w3.org/1999/xhtml}div")
-    curr_el.text = old_e.text
+    curr_el.text = old_e.text or ""
     for el in old_e:
         if el.tag == "{http://www.w3.org/1999/xhtml}br":
             if curr_el.tail:
