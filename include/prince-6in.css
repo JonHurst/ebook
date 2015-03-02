@@ -2,42 +2,43 @@
 
 @page {
     size: 90mm 123mm;
-    margin: 2mm 0.75mm 0mm 0.75mm;
+    margin: 4mm 1.5mm 0mm 1.5mm;
 }
 
 body {
-    padding-top:6pt;
 }
 
 body, td {
-    margin:0.25em;
     font-size: 11pt;
 }
 
 
 .fsp {
-    height:122.5mm;
-    width:89.5mm;
+    float: top unless-fit;
+    height:118.5mm;
+    width:87mm;
 }
 
 
 .fsp * {
-    max-height: 122.5mm;
-    max-width: 89.5mm;
+    max-height: 118.5mm;
+    max-width: 87mm;
 }
 
 
 .fsl {
-    width:122.5mm;
-    height:89.5mm;
+    float: top unless-fit;
+    width:118.5mm;
+    height:87mm;
     transform-origin: top left;
-    transform: rotate(-90deg) translate(-122.75mm);
+    /* transform: rotate(-90deg) translate(-122.75mm); */
+    transform: rotate(-90deg) translate(-117.5mm);
 }
 
 
 .fsl * {
-    max-width:122.5mm;
-    max-height:89.5mm;
+    max-width:118.5mm;
+    max-height:87mm;
 }
 
 
