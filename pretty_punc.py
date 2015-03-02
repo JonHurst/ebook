@@ -43,9 +43,10 @@ def query_single(s, start, end, dialect):
             if pos == -1: return s
             t = ""
             while t not in ("<", ">", "m", "d", ",", "."):
-                print(s[max(pos - context, 0):pos] +
-                      "\033[31m[\033[0m" + s[pos] + "\033[31m]\033[0m" +
-                      s[pos + 1:min(pos + context, len(s))])
+                query_line = (s[max(pos - context, 0):pos] +
+                              "\033[31m[\033[0m" + s[pos] + "\033[31m]\033[0m" +
+                              s[pos + 1:min(pos + context, len(s))])
+                print(re.sub(r"\s+", " ", query_line))
                 sys.stdout.write("[<,>,m,d,?] : ")
                 sys.stdout.flush()
                 t = sys.stdin.read(1)
