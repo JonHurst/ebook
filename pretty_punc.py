@@ -212,6 +212,12 @@ def parse_command_line():
                      "one containing curly quotes. Old file copied with .old suffix."))
     parser.add_argument("--skip-quote-count", action="store_true",
                         help="Don't run quote counting check.")
+    parser.add_argument("--skip-curl", action="store_true",
+                        help="Don't attempt to curl quotes, leave them as they are.")
+    parser.add_argument("--skip-dashes", action="store_true",
+                        help="Don't attempt to change dashes to ndash system.")
+    parser.add_argument("--skip-ellipses", action="store_true",
+                        help="Don't attempt to change ellipses to utf-8 character method.")
     parser.add_argument("-i", "--include", action="append",
                         help="Include additional block with form tag[.class] (e.g. div or div.poem)")
     parser.add_argument("filename", nargs="?", default="bsps.xhtml",
@@ -259,32 +265,45 @@ def main():
     args = parse_command_line()
     text = open(args["filename"], encoding="utf-8").read()
     text = fix_entities(text)
-    #process the tree into a list of blocks to process
     tree = et.XML(text)
-    blocks = build_block_list(tree, args)
-    #process the blocks
-    dialect = {}
-    ble = len(blocks)
-    for c, se in enumerate(blocks):
-        print(c + 1, "of", ble)
-        curlify_element(se, dialect, args.get("skip_quote_count"))
-    #one more round of dialect replacement to catch fixable errors
-    fix_dialect_errors(blocks, dialect)
-    rmap = (
-        #mark remaining straight quotes and replace apostrophes with right singles
-        ['"', '{"}', 0], ["'", "{'}", 0], ["\u02bc", "\u2019"],
-        #sort out ellipses
-        [" . . . .", "…."], [" . . . ", " … "],
-        ["....", "…."], [" ... ", " … "],
-        ["… ”", "…”"], ["… ’", "…’"],
-        #sort out dashes
-        ["----", "&dmdash;"], ["——", "&dmdash;"],
-        ["--", "—"],
-        ["—”", " –”"], ["—’", " –’"],
-        ["“—", "“– "], ["‘—", "‘– "],
-        ["—", " – "], ["&dmdash;", "——"]
-    )
-    replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
+    if not args.get("skip_curl"):
+        #process the tree into a list of blocks to process
+        blocks = build_block_list(tree, args)
+        #process the blocks
+        dialect = {}
+        ble = len(blocks)
+        for c, se in enumerate(blocks):
+            print(c + 1, "of", ble)
+            curlify_element(se, dialect, args.get("skip_quote_count"))
+        #one more round of dialect replacement to catch fixable errors
+        fix_dialect_errors(blocks, dialect)
+        print("Dialect: ", " : ".join(sorted(dialect.keys())))
+        rmap = (
+            #mark remaining straight quotes and replace apostrophes with right singles
+            ['"', '{"}', 0], ["'", "{'}", 0], ["\u02bc", "\u2019"]
+        )
+        replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
+        print("Need to fix", rmap[0][2], rmap[0][1], "and",
+              rmap[1][2], rmap[1][1])
+    if not args.get("skip_ellipses"):
+        print("Fixing ellipses")
+        rmap = (
+            [" . . . .", "…."], [" . . . ", " … "],
+            ["....", "…."], [" ... ", " … "],
+            ["… ”", "…”"], ["… ’", "…’"]
+        )
+        replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
+    if not args.get("skip_dashes"):
+        print("Fixing dashes")
+        rmap = (
+            ["----", "&dmdash;"], ["——", "&dmdash;"],
+            ["--", "—"],
+            ["—”", " –”"], ["—’", " –’"],
+            ["“—", "“– "], ["‘—", "‘– "],
+            ["—", " – "], ["&dmdash;", "——"]
+        )
+        replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
+
     #output file
     c, backup_filename = 0, args["filename"] + ".old"
     while os.path.exists(backup_filename):
@@ -294,10 +313,7 @@ def main():
     et.ElementTree(tree).write(args["filename"],
                                encoding="unicode",
                                xml_declaration=True)
-    print("Dialect: ", " : ".join(sorted(dialect.keys())))
     print("Wrote", args["filename"])
-    print("Need to fix", rmap[0][2], rmap[0][1], "and",
-          rmap[1][2], rmap[1][1])
 
 
 
