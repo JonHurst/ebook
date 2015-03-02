@@ -22,7 +22,7 @@ def process_doubles(p):
     #double touching a letter will face that letter. For closing, some punctuation
     #is equivalent to a letter
     p = re.sub(r'"(\w)', '\u201c\\1', p)
-    p = re.sub(r'([\w.,;:?!])"', '\\1\u201d', p)
+    p = re.sub(r'([\w.,;:?!\'])"', '\\1\u201d', p)
     #double touching space (or equivalently start or end of line) will
     #face away from that space
     p = re.sub(r'(^|\s)"', '\\1\u201c', p, flags=re.MULTILINE)
@@ -123,11 +123,8 @@ def process_singles(p, dialect):
 
 
 def process_para(p, dialect):
-    #deal with previously existing curled quotes -- assume they may be incorrect
-    p = re.sub(r"’(\w)", "\u02bc\\1", p)
-    p = re.sub(r"(‘\s*)|(\s*’)" , "'", p)
-    p = re.sub(r"(“\s*)|(\s*”)" , '"', p)
-    p = re.sub(r"\{(['\"])\}", "\\1", p)
+    if p.find("'") == -1 and p.find('"') == -1:
+        return p
     #replace suspected apostrophes with \u02bc
     #intraword replacement - do it a twice to catch overlapping cases
     for i in range(2): p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
@@ -214,6 +211,8 @@ def parse_command_line():
     parser = argparse.ArgumentParser(
         description=("Process an xhtml file containing straight quotes into "
                      "one containing curly quotes. Old file copied with .old suffix."))
+    parser.add_argument("-u", "--uncurl", action="store_true",
+                        help="Uncurl quotes and undo ndash spacing prior to processing.")
     parser.add_argument("--skip-quote-count", action="store_true",
                         help="Don't run quote counting check.")
     parser.add_argument("--skip-curl", action="store_true",
@@ -270,6 +269,16 @@ def main():
     text = open(args["filename"], encoding="utf-8").read()
     text = fix_entities(text)
     tree = et.XML(text)
+    if args.get("uncurl"):
+        rmap = (
+            [r"\s?–\s?", "—"],
+            [r"“\s‘", "\"'"], ["’\s”", "'\""],
+            [r"‘\s“", "'\""], ["”\s’", "\"'"],
+            [r"[“”]", '"'],
+            [r"[‘’]", "'"],
+            [r"\{(['\"])\}", "\\1"]
+        )
+        replace_text(tree.find(".//{http://www.w3.org/1999/xhtml}body"), rmap)
     if not args.get("skip_curl"):
         #process the tree into a list of blocks to process
         blocks = build_block_list(tree, args)
