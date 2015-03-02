@@ -46,7 +46,7 @@ def replace_tags(change_list, to):
     if len(o) == 2:
         for e in change_list:
             e.tag = o[0]
-            e.attrib["class"] = O[1]
+            e.attrib["class"] = o[1]
     elif len(o) == 1:
         for e in change_list:
             e.tag = o[0]
