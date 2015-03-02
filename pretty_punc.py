@@ -122,6 +122,9 @@ def process_singles(p, dialect):
 
 
 def process_para(p, dialect):
+    #replace any previously existing curled quotes with straight quotes
+    p = re.sub(r"[‘’]" , "'", p)
+    p = re.sub(r"[“”]" , '"', p)
     #replace suspected apostrophes with \u02bc
     #intraword replacement - do it a twice to catch overlapping cases
     for i in range(2): p = re.sub(r"(\w)'(\w)", "\\1\u02bc\\2", p)
