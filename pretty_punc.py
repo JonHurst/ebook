@@ -186,8 +186,6 @@ def replace_text(e, rep_map):
             if se.tail: se.tail, c_tail = re.subn(r[0], r[1], se.tail)
             if len(r) == 3:
                 r[2] += c_text + c_tail
-                if se.text: r[2] += se.text.count(r[0])
-                if se.tail: r[2] += se.tail.count(r[0])
 
 
 def quote_balance_check(qb_text):
