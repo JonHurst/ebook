@@ -1,0 +1,54 @@
+h1 {
+    page-break-before:always;
+    text-align:center;
+}
+
+p {
+    margin:0;
+    text-indent:1em;
+    text-align:justify;
+}
+
+h1 + p, div.poetry + p, hr.tbk + p {
+    text-indent:0;
+}
+
+div.poetry {
+    width:80%;
+    margin: 1em auto;
+}
+
+div.stanza {
+    margin: 1em 0;
+    page-break-inside:avoid;
+}
+
+div.line, div.linei, div.lineii {
+    padding-left:3em;
+}
+
+div.line {
+    text-indent: -3em;
+}
+
+div.linei {
+    text-indent: -2em;
+}
+
+div.lineii {
+    text-indent: -1em;
+}
+
+.center {
+    text-align:center;
+}
+
+.spaced {
+    margin: 1em 0;
+}
+
+hr.tbk {
+    width:30%;
+    color:gray;
+    margin: 2em auto;
+}
