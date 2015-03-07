@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import argparse
 import os
 import shutil
+import common
 
 
 def parse_arguments():
@@ -78,7 +79,7 @@ def main():
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
     args = parse_arguments()
     shutil.copyfile(args["input"], args["input"] + ".old")
-    itree = ET.parse(args["input"])
+    itree = common.parse_xhtml(args["input"])
     change_list = make_change_list(itree, args["from"])
     if args["to"]:
         replace_tags(change_list, args["to"])
