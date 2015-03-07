@@ -43,6 +43,10 @@ div.lineii {
     text-align:center;
 }
 
+.right {
+    text-align:right;
+}
+
 .spaced {
     margin: 1em 0;
 }
