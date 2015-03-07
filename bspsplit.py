@@ -8,6 +8,7 @@ import collections
 import copy
 import os
 import shutil
+import common
 
 
 bsp_template = """\
@@ -162,7 +163,7 @@ Seperate "bog standard paragraphs" to expose HTML skeleton.""")
 def main():
     ET.register_namespace('', "http://www.w3.org/1999/xhtml")
     args = parse_command_line()
-    root = ET.parse(args["input"])
+    root = common.parse_xhtml(args["input"])
     head = root.find(".//{http://www.w3.org/1999/xhtml}head")
     body = root.find(".//{http://www.w3.org/1999/xhtml}body")
     #add skeleton headers
