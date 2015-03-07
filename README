@@ -38,18 +38,20 @@ It is often useful to get a quick overview of what tags are left in the
 skeleton and what tags have been allowed into the BSPs. This tool
 generates such a list.
 
-html_curlify.py
+pretty_punc.py
 ===============
+
 This tool is used to prettify the punctuation within a file. It only
-works on <p> to avoid messing up complex sections. It primarily is used
-to replace straight quotes with their correct directional
-counterpart. Dialect makes this process much more difficult (it is hard
-to know whether a single straight quote at the start of a word is an
-apostrophe or an opening quote), so it requires some interaction.
+works on <p> to avoid messing up complex sections, although other
+section types can be added as a command line option. It primarily is
+used to replace straight quotes with their correct directional
+counterpart. Dialect makes this process much more difficult (it is
+hard to know whether a single straight quote at the start of a word is
+an apostrophe or an opening quote), so it requires some interaction.
 
 The tool also attempts to sort out dashes and ellipses
-appropriately. This has been added to the curling functionality, and
-should propably result in a change of name at some point.
+appropriately. This functionality is immature and will likely evolve as
+more weird ways of doing dashes and ellipses are encountered.
 
 haines_poem.py
 ==============
